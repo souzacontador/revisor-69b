@@ -1,0 +1,3 @@
+# Datos del SAT y del caso: conservar los bytes exactos (Windows-1252, CRLF)
+demo/** -text
+data/** -text

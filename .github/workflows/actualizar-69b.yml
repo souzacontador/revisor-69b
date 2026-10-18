@@ -1,0 +1,57 @@
+# Actualiza cada día la copia del listado 69-B del SAT que lee la app (carpeta data/69b).
+# El navegador no puede descargarlo directamente por CORS, así que lo hace esta acción.
+name: Actualizar listado 69-B
+
+on:
+  # Corre todos los días a las 14:00 UTC.
+  # Equivale a 07:00 en Mexicali con horario de verano (UTC-7) y a 06:00 en invierno (UTC-8).
+  schedule:
+    - cron: "0 14 * * *"
+  # Permite correrlo a mano desde la pestaña Actions.
+  workflow_dispatch:
+
+# Necesario para que el bot haga commit y push de data/69b.
+permissions:
+  contents: write
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Descarga el repositorio para poder leer y actualizar data/69b.
+      - name: Obtener el repositorio
+        uses: actions/checkout@v4
+
+      # 2. Prepara Node.js 20 (el script usa el fetch global, sin dependencias externas).
+      - name: Instalar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. Descarga el listado del SAT, lo valida y, solo si es correcto, reemplaza data/69b.
+      #    Si la descarga o la validación fallan, el paso falla, no se toca nada y no hay commit.
+      - name: Descargar y validar el listado 69-B
+        run: node tools/actualizar-69b.js
+
+      # 4. Si el contenido cambió, guarda el cambio en el repositorio con la identidad del bot.
+      - name: Guardar cambios en el repositorio
+        run: |
+          # Usa la identidad de github-actions[bot] para el commit.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898169+github-actions[bot]@users.noreply.github.com"
+
+          # Prepara solo la carpeta del listado (incluye archivos nuevos y modificados).
+          git add data/69b
+
+          # Si no hay nada preparado, el listado no cambió: termina sin commit.
+          if git diff --cached --quiet; then
+            echo "El listado 69-B no cambió; no se hace commit."
+            exit 0
+          fi
+
+          # Fecha del día en hora de Mexicali (zona horaria de Tijuana) para el mensaje del commit.
+          FECHA=$(TZ=America/Tijuana date +%Y-%m-%d)
+          git commit -m "Listado 69-B: actualización automática $FECHA"
+
+          # Sube el commit a la rama desde la que se ejecutó el flujo.
+          git push origin "HEAD:${GITHUB_REF_NAME}"

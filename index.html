@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="es-MX" data-tamano="A">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revisor de Proveedores 69-B · DSouza Consultores Fiscales</title>
+  <meta name="description" content="Cruza CFDI de gastos contra el listado del artículo 69-B del CFF por RFC, clasifica cada operación, calcula el IVA y la deducción comprometidos y el plazo de 30 días hábiles.">
+  <meta name="theme-color" content="#0A2540">
+  <link rel="icon" href="assets/img/isotipo.png">
+  <link rel="stylesheet" href="css/marca.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <a class="saltar" href="#principal">Saltar al contenido</a>
+
+  <!-- Íconos SVG (trazo simple, sin dependencias) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-subir" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+    <symbol id="i-bajar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+    <symbol id="i-imprimir" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></symbol>
+    <symbol id="i-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17v.5"/></symbol>
+    <symbol id="i-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 4v16l13-8z"/></symbol>
+    <symbol id="i-recargar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
+    <symbol id="i-archivo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
+    <symbol id="i-enlace" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+  </svg>
+
+  <header class="masthead">
+    <!-- Grafo fiscal (elemento gráfico de marca: 4 nodos, acento algorítmico, opacidad baja) -->
+    <svg class="masthead__grafo" viewBox="0 0 360 260" aria-hidden="true">
+      <g stroke="#A9C4FF" stroke-width="2"><line x1="70" y1="190" x2="170" y2="80"/><line x1="170" y1="80" x2="290" y2="130"/><line x1="170" y1="80" x2="230" y2="220"/><line x1="290" y1="130" x2="230" y2="220"/></g>
+      <g fill="#7AA7FF"><circle cx="70" cy="190" r="12"/><circle cx="170" cy="80" r="18"/><circle cx="290" cy="130" r="14"/><circle cx="230" cy="220" r="10"/></g>
+    </svg>
+    <div class="contenedor masthead__fila">
+      <div class="marca">
+        <img src="assets/img/isotipo.png" alt="" width="44" height="44">
+        <div>
+          <p class="marca__despacho">DSouza Consultores Fiscales</p>
+          <p class="marca__bajada">Asesoría Fiscal y Capacitación</p>
+        </div>
+      </div>
+      <div class="tamano" role="group" aria-label="Tamaño del texto">
+        <button type="button" data-tamano="A" aria-pressed="true" aria-label="Texto normal">A</button>
+        <button type="button" data-tamano="A+" aria-pressed="false" aria-label="Texto grande">A+</button>
+        <button type="button" data-tamano="A++" aria-pressed="false" aria-label="Texto muy grande">A++</button>
+      </div>
+    </div>
+    <div class="contenedor hero">
+      <p class="eyebrow">Artículo 69-B del Código Fiscal de la Federación</p>
+      <h1>Revisor de Proveedores 69-B</h1>
+      <p class="lead">Cruza cada CFDI de gastos contra el listado del SAT <strong>por RFC</strong>, clasifica la operación, suma el IVA y la deducción comprometidos y calcula el plazo de 30 días hábiles. Todo se procesa en tu navegador: los comprobantes no salen de tu equipo.</p>
+      <div class="modo" role="tablist" aria-label="Modo de uso">
+        <button type="button" role="tab" id="tab-demo" aria-controls="vista-demo" aria-selected="true">Modo DEMO<small>Caso del laboratorio · 40 CFDI</small></button>
+        <button type="button" role="tab" id="tab-real" aria-controls="vista-real" aria-selected="false" tabindex="-1">Modo REAL<small>Tus CFDI y el listado vigente</small></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="principal">
+    <!-- ======================= MODO DEMO ======================= -->
+    <section id="vista-demo" class="vista" role="tabpanel" aria-labelledby="tab-demo">
+      <nav class="pasos no-imprimir" aria-label="Pasos del caso">
+        <ol>
+          <li><a href="#paso-1"><span>1</span>Conoce el paquete</a></li>
+          <li><a href="#paso-2"><span>2</span>Diseña el revisor</a></li>
+          <li><a href="#paso-3"><span>3</span>Clasifica las operaciones</a></li>
+          <li><a href="#paso-4"><span>4</span>Impacto por proveedor</a></li>
+          <li><a href="#paso-5"><span>5</span>Acción y plazo</a></li>
+          <li><a href="#entregables"><span>✓</span>Entregables</a></li>
+        </ol>
+      </nav>
+
+      <div class="contenedor vista">
+        <div class="aviso" role="note">
+          <svg><use href="#i-info"/></svg>
+          <div><p><strong>Escenario:</strong> es 30 de septiembre de 2026. Llevas la contabilidad de <em>Contribuyente Demo Laboratorio SA de CV</em> y el director de finanzas pregunta: «¿Le hemos comprado algo a alguna facturadora este año?». Todos los datos de este paquete son ficticios.</p></div>
+        </div>
+
+        <!-- Paso 1 -->
+        <section id="paso-1" class="tarjeta" aria-labelledby="t-paso-1">
+          <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">1</span><h2 id="t-paso-1">Conoce el paquete</h2></div>
+          <p class="texto">Antes de construir nada, mira cómo viene cada fuente: el <strong>LEEME</strong>, el <strong>listado del 69-B</strong> (con sus renglones de título y su codificación) y un par de <strong>CFDI</strong>.</p>
+          <div class="rejilla rejilla--2">
+            <div>
+              <h3>LEEME.txt</h3>
+              <pre class="crudo envolver" id="demo-leeme"></pre>
+            </div>
+            <div>
+              <h3>Cómo viene el CSV del SAT</h3>
+              <ul class="vinetas" id="demo-csv-hechos"></ul>
+            </div>
+          </div>
+          <h3>Primeros renglones del listado</h3>
+          <p class="secundario pequeno">En ámbar, los renglones de título que no son datos; en azul, el encabezado real; en rojo, un RFC «sucio».</p>
+          <div class="tabla-envoltura" id="demo-csv-vista"></div>
+          <h3 style="margin-top:24px">Un CFDI por dentro</h3>
+          <div class="campo" style="max-width:36rem">
+            <label for="demo-cfdi-sel">Elige un comprobante</label>
+            <select id="demo-cfdi-sel"></select>
+          </div>
+          <div class="rejilla rejilla--2" style="margin-top:16px">
+            <div><h4>Datos que lee el revisor</h4><div class="tabla-envoltura" id="demo-cfdi-datos"></div></div>
+            <div><h4>XML (sin sello ni certificado)</h4><pre class="crudo" id="demo-cfdi-xml"></pre></div>
+          </div>
+        </section>
+
+        <!-- Paso 2 -->
+        <section id="paso-2" class="tarjeta" aria-labelledby="t-paso-2">
+          <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">2</span><h2 id="t-paso-2">Diseña el revisor</h2></div>
+          <p class="texto">El revisor aplica estas reglas. La llave del cruce es el <strong>RFC normalizado</strong> (sin espacios, en mayúsculas); el nombre solo sirve para leer el reporte.</p>
+          <ul class="lista-reglas">
+            <li><span class="etiqueta-sit nivel-alto">Definitivo</span><span><strong>Sin efecto fiscal.</strong> El art. 69-B dice que sus comprobantes «no producen ni produjeron efecto fiscal alguno»: alcanza al IVA acreditado y a la deducción de ISR, aunque la factura sea anterior a la publicación. Se calcula el plazo de 30 días hábiles desde la publicación en el DOF.</span></li>
+            <li><span class="etiqueta-sit nivel-medio">Presunto</span><span><strong>Riesgo potencial.</strong> Los comprobantes aún no pierden efecto, pero hay que reunir la evidencia de materialidad. Todavía no aplica el plazo de 30 días para el cliente.</span></li>
+            <li><span class="etiqueta-sit nivel-bajo">Desvirtuado</span><span><strong>Sin riesgo.</strong> El proveedor probó sus operaciones; sus comprobantes conservan sus efectos.</span></li>
+            <li><span class="etiqueta-sit nivel-bajo">Sentencia favorable</span><span><strong>Sin riesgo.</strong> Una resolución o sentencia firme dejó sin efectos la resolución definitiva.</span></li>
+            <li><span class="etiqueta-sit nivel-info sin-punto">No listado</span><span><strong>Sin riesgo:</strong> «RFC no encontrado en el listado consultado», con la fecha de los datos. Si el nombre se parece al de un contribuyente listado, se avisa, pero no cambia el veredicto.</span></li>
+          </ul>
+          <details class="detalle">
+            <summary>Ver el prompt inicial con el que se construyó</summary>
+            <pre class="crudo envolver" id="demo-prompt"></pre>
+          </details>
+          <p class="pequeno secundario" style="margin-top:12px">Ver también: <a href="#como-se-construyo">cómo se construyó y qué costó más trabajo</a>.</p>
+        </section>
+
+        <!-- Paso 3 -->
+        <section id="paso-3" class="tarjeta" aria-labelledby="t-paso-3">
+          <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">3</span><h2 id="t-paso-3">Córrelo y clasifica las 40 operaciones</h2></div>
+          <p class="texto">Fecha de revisión del caso: <strong>30 de septiembre de 2026</strong>. Cada operación queda como <em>sin efecto fiscal</em>, <em>en riesgo</em> o <em>sin riesgo</em>, con su motivo.</p>
+          <div class="acciones-fila no-imprimir">
+            <button type="button" class="btn btn--primario" id="demo-ejecutar"><svg><use href="#i-play"/></svg>Ejecutar la revisión</button>
+            <span class="secundario pequeno" id="demo-estado" aria-live="polite"></span>
+          </div>
+          <div id="demo-kpis" style="margin-top:20px"></div>
+          <div id="demo-operaciones" style="margin-top:20px"></div>
+        </section>
+
+        <!-- Paso 4 -->
+        <section id="paso-4" class="tarjeta" aria-labelledby="t-paso-4">
+          <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">4</span><h2 id="t-paso-4">Impacto por proveedor</h2></div>
+          <p class="texto">IVA acreditado y deducción de ISR comprometidos por cada proveedor que aparece en el listado. El monto de deducción es <strong>potencial</strong> (SubTotal − Descuento): puedes ajustar lo efectivamente deducido o acreditado en la tabla del paso 3.</p>
+          <div class="rejilla rejilla--2 no-imprimir" id="demo-parametros-isr"></div>
+          <div id="demo-impacto" style="margin-top:20px"><p class="secundario">Ejecuta la revisión del paso 3 para ver el impacto.</p></div>
+        </section>
+
+        <!-- Paso 5 -->
+        <section id="paso-5" class="tarjeta" aria-labelledby="t-paso-5">
+          <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">5</span><h2 id="t-paso-5">Acción y plazo por proveedor listado</h2></div>
+          <p class="texto">Qué debe hacer la empresa y hasta cuándo. El plazo de 30 días se cuenta en <strong>días hábiles</strong> (art. 12 CFF) a partir del día siguiente a la publicación del definitivo en el DOF.</p>
+          <div id="demo-acciones"><p class="secundario">Ejecuta la revisión del paso 3 para ver las acciones.</p></div>
+        </section>
+
+        <!-- Entregables -->
+        <section id="entregables" class="tarjeta" aria-labelledby="t-entregables">
+          <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">✓</span><h2 id="t-entregables">Entregables</h2></div>
+          <ul class="vinetas">
+            <li><strong>La herramienta:</strong> esta aplicación (HTML5, CSS y JavaScript), con su código en el repositorio.</li>
+            <li><strong>Tabla por operación:</strong> UUID, proveedor, RFC, fecha, subtotal, IVA, situación del proveedor y veredicto.</li>
+            <li><strong>Resumen por proveedor listado:</strong> situación, fechas de publicación, IVA y deducción comprometidos, acción recomendada y fecha límite.</li>
+          </ul>
+          <div class="acciones-fila no-imprimir" id="demo-exportar"></div>
+          <div id="como-se-construyo" style="margin-top:24px"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ======================= MODO REAL ======================= -->
+    <section id="vista-real" class="vista" role="tabpanel" aria-labelledby="tab-real" hidden>
+      <div class="contenedor vista">
+        <div class="aviso" role="note">
+          <svg><use href="#i-info"/></svg>
+          <div><p><strong>Privacidad:</strong> los CFDI que cargues se leen solo en este navegador; no se envían a ningún servidor. El listado del 69-B es información pública del SAT.</p></div>
+        </div>
+
+        <!-- 1. Listado -->
+        <section class="tarjeta estado-listado" aria-labelledby="t-real-listado">
+          <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">1</span><h2 id="t-real-listado">Listado del 69-B</h2></div>
+          <p class="texto">Una tarea automática descarga cada día el listado completo del sitio de datos abiertos del SAT, lo valida y guarda la última versión válida en este sitio. Si la descarga falla, se conserva la versión anterior.</p>
+          <div id="real-listado-estado" aria-live="polite"><p class="secundario">Aún no se ha cargado un listado.</p></div>
+          <div class="acciones-fila no-imprimir">
+            <button type="button" class="btn btn--primario" id="real-cargar-listado"><svg><use href="#i-recargar"/></svg>Cargar último listado disponible</button>
+            <label class="btn btn--secundario" for="real-csv-manual"><svg><use href="#i-subir"/></svg>Cargar CSV descargado del SAT</label>
+            <input type="file" id="real-csv-manual" accept=".csv,text/csv" class="oculto-visual">
+            <a class="btn btn--fantasma" href="https://www.sat.gob.mx/minisitio/DatosAbiertos/contribuyentes_publicados.html" target="_blank" rel="noopener"><svg><use href="#i-enlace"/></svg>Datos abiertos del SAT</a>
+          </div>
+        </section>
+
+        <!-- 2. CFDI -->
+        <section class="tarjeta" aria-labelledby="t-real-cfdi">
+          <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">2</span><h2 id="t-real-cfdi">CFDI del cliente</h2></div>
+          <label class="zona-carga no-imprimir" id="real-zona" for="real-cfdi-input">
+            <svg aria-hidden="true"><use href="#i-subir"/></svg>
+            <strong>Arrastra aquí tus XML o ZIP</strong>
+            <span>o toca para seleccionarlos. Puedes cargar varios a la vez; los duplicados se detectan por UUID.</span>
+          </label>
+          <input type="file" id="real-cfdi-input" accept=".xml,.zip,text/xml,application/xml,application/zip" multiple class="oculto-visual">
+          <div id="real-cfdi-resumen" aria-live="polite"></div>
+        </section>
+
+        <!-- 3. Parámetros -->
+        <section class="tarjeta" aria-labelledby="t-real-param">
+          <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">3</span><h2 id="t-real-param">Parámetros de la revisión</h2></div>
+          <div class="rejilla rejilla--2">
+            <div class="campo">
+              <label for="real-fecha">Fecha de revisión</label>
+              <input type="date" id="real-fecha">
+              <span class="ayuda">Se usa para saber si el plazo de 30 días hábiles sigue vigente.</span>
+            </div>
+          </div>
+          <div class="rejilla rejilla--2" id="real-parametros-isr" style="margin-top:16px"></div>
+          <div class="acciones-fila no-imprimir" style="margin-top:20px">
+            <button type="button" class="btn btn--primario" id="real-ejecutar" disabled><svg><use href="#i-play"/></svg>Ejecutar la revisión</button>
+            <button type="button" class="btn btn--secundario" id="real-limpiar">Limpiar CFDI cargados</button>
+            <span class="secundario pequeno" id="real-estado" aria-live="polite"></span>
+          </div>
+        </section>
+
+        <!-- 4. Resultados -->
+        <section class="tarjeta" id="real-resultados" aria-labelledby="t-real-res" hidden>
+          <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">4</span><h2 id="t-real-res">Resultados</h2></div>
+          <div id="real-kpis"></div>
+          <h3 style="margin-top:28px">Resumen por proveedor listado</h3>
+          <div id="real-impacto"></div>
+          <h3 style="margin-top:28px">Acción y plazo</h3>
+          <div id="real-acciones"></div>
+          <h3 style="margin-top:28px">Tabla por operación</h3>
+          <div id="real-operaciones"></div>
+          <div class="acciones-fila no-imprimir" id="real-exportar" style="margin-top:20px"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <div class="contenedor">
+      <p><strong>DSouza Consultores Fiscales</strong> · C.P. Daniel Souza Vázquez · Mexicali, Baja California · <a href="mailto:daniel@dsouzaconsultores.mx">daniel@dsouzaconsultores.mx</a> · (686) 256-7293</p>
+      <p>Herramienta de apoyo para la revisión de proveedores contra el listado del artículo 69-B del CFF. No sustituye el análisis profesional de cada caso ni la consulta de las publicaciones oficiales en el DOF y en el portal del SAT.</p>
+    </div>
+  </footer>
+
+  <script src="js/util.js"></script>
+  <script src="js/dias-habiles.js"></script>
+  <script src="js/lector-csv.js"></script>
+  <script src="js/lector-cfdi.js"></script>
+  <script src="js/lector-zip.js"></script>
+  <script src="js/clasificador.js"></script>
+  <script src="js/exportar.js"></script>
+  <script src="js/demo-data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

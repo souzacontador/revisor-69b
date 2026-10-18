@@ -1,0 +1,12 @@
+Reto 8 del Laboratorio - Revisor de proveedores 69-B
+
+Todos los datos de este paquete son ficticios: contribuyentes, RFC, nombres, oficios, montos y UUID.
+Ninguno corresponde a una persona o empresa real ni a una publicación real del SAT.
+
+cfdi/                         40 CFDI de gastos recibidos por CONTRIBUYENTE DEMO LABORATORIO en 2026.
+Listado_Completo_69-B.csv     Listado del art. 69-B con la estructura del que publica el SAT:
+                              tres renglones de título antes del encabezado, codificación Windows-1252,
+                              fechas dd/mm/aaaa. Situaciones: Presunto, Desvirtuado, Definitivo,
+                              Sentencia Favorable.
+
+Fecha de la revisión: 30/09/2026.
