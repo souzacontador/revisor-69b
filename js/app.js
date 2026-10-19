@@ -617,10 +617,22 @@
       cargarCFDICaso(); estado.demo.mensajeNuevo = false; $('#resultados').hidden = true; pintarResumenCFDI(); actualizarBoton();
     });
     $('#ejecutar').addEventListener('click', () => {
+      const b = $('#ejecutar'), aviso = $('#estado-ejecucion');
       st().descargado = false; st().mensajeNuevo = false;
-      recalcular(true);
-      $('#resultados').hidden = false;
-      $('#resultados').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      b.disabled = true;
+      aviso.innerHTML = '<span class="cargando">Procesando…</span>';
+      // Se cede un instante al navegador para que muestre «Procesando…» antes del cálculo
+      setTimeout(() => {
+        const t0 = performance.now();
+        try {
+          recalcular(true);
+          $('#resultados').hidden = false;
+          $('#resultados').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          aviso.textContent = `Revisión lista: ${st().resultado.operaciones.length} CFDI en ${Math.max(1, Math.round(performance.now() - t0))} ms.`;
+        } catch (e) {
+          aviso.textContent = 'No se pudo completar la revisión: ' + e.message;
+        } finally { b.disabled = !(st().listado && st().cfdis.length); }
+      }, 30);
     });
 
     // Resultados: filtros, búsqueda, ajustes de importes y exportación

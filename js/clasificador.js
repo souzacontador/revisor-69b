@@ -24,25 +24,57 @@
   const RUIDO = /\b(S\.?\s?A\.?|S\.?\s?C\.?|S\.?\s?DE\s?R\.?\s?L\.?|DE\s+C\.?\s?V\.?|SAPI|S\.?\s?A\.?\s?P\.?\s?I\.?|A\.?\s?C\.?|SOCIEDAD|ANONIMA|CAPITAL|VARIABLE|RESPONSABILIDAD|LIMITADA)\b/g;
   function nombreBase(n) { return U.claveTexto(n).toUpperCase().replace(RUIDO, ' ').replace(/[^A-Z0-9Ñ& ]/g, ' ').replace(/\s+/g, ' ').trim(); }
   function bigramas(t) { const s = new Map(); for (let i = 0; i < t.length - 1; i++) { const b = t.slice(i, i + 2); s.set(b, (s.get(b) || 0) + 1); } return s; }
-  function dice(a, b) {
-    if (a.length < 2 || b.length < 2) return 0;
-    const A = bigramas(a), B = bigramas(b); let inter = 0;
-    A.forEach((v, k) => { if (B.has(k)) inter += Math.min(v, B.get(k)); });
-    return (2 * inter) / (a.length - 1 + b.length - 1);
+  /** Coeficiente de Dice sobre bigramas ya calculados. */
+  function diceMapas(A, la, B, lb) {
+    if (la < 2 || lb < 2) return 0;
+    let inter = 0;
+    A.forEach((v, k) => { const w = B.get(k); if (w) inter += Math.min(v, w); });
+    return (2 * inter) / (la - 1 + lb - 1);
   }
+
+  // Índice de nombres por listado: se arma una sola vez (agrupado por primera palabra, con bigramas precalculados)
+  // y guarda cada consulta, para que repetir la revisión o ajustar importes no vuelva a recorrer el listado.
+  const INDICES = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+  function indiceNombres(listado) {
+    let ix = INDICES && INDICES.get(listado);
+    if (ix) return ix;
+    ix = { porPalabra: new Map(), consultas: new Map() };
+    for (const r of listado.registros) {
+      const base = nombreBase(r.nombre);
+      if (!base) continue;
+      const clave = base.split(' ')[0];
+      if (!ix.porPalabra.has(clave)) ix.porPalabra.set(clave, []);
+      ix.porPalabra.get(clave).push({ base, r, mapa: null });
+    }
+    if (INDICES) INDICES.set(listado, ix);
+    return ix;
+  }
+
   function crearBuscadorNombres(listado) {
-    const items = listado.registros.map(r => ({ base: nombreBase(r.nombre), r })).filter(x => x.base);
+    const ix = indiceNombres(listado);
     return function (nombre, rfc) {
       const base = nombreBase(nombre);
       if (!base || base.split(' ').length < 2) return null;
+      const clave = rfc + '|' + base;
+      if (ix.consultas.has(clave)) return ix.consultas.get(clave);
+      // Solo se comparan nombres que empiezan con la misma palabra (un prefijo común o una similitud ≥ 0.9 lo exigen en la práctica)
+      const candidatos = ix.porPalabra.get(base.split(' ')[0]) || [];
+      const mapaBase = bigramas(base);
       let mejor = null;
-      for (const it of items) {
+      for (const it of candidatos) {
         if (it.r.rfc === rfc) continue;
         const contiene = (it.base.startsWith(base + ' ') || base.startsWith(it.base + ' ')) && Math.min(base.length, it.base.length) >= 12;
-        const s = contiene ? 0.95 : dice(base, it.base);
+        let s = 0;
+        if (contiene) s = 0.95;
+        else if (Math.min(base.length, it.base.length) / Math.max(base.length, it.base.length) >= 0.8) {
+          if (!it.mapa) it.mapa = bigramas(it.base);
+          s = diceMapas(mapaBase, base.length, it.mapa, it.base.length);
+        }
         if (s >= 0.9 && (!mejor || s > mejor.s)) mejor = { s, r: it.r };
       }
-      return mejor ? mejor.r : null;
+      const resultado = mejor ? mejor.r : null;
+      ix.consultas.set(clave, resultado);
+      return resultado;
     };
   }
 
