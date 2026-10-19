@@ -181,6 +181,7 @@ tfoot td { font-weight: 600; background: var(--azul-50); }
   .tabla-tarjetas td > * { grid-column: 2; justify-self: start; max-width: 100%; }
   .tabla-tarjetas td > .ajuste, .tabla-tarjetas td > .nota-nombre, .tabla-tarjetas td > details { justify-self: stretch; }
   .tabla-tarjetas td.num { text-align: left; }
+  .tabla-tarjetas td.num::before { white-space: normal; }
   .tabla-tarjetas td.ancho-completo { grid-template-columns: minmax(0, 1fr); }
   .tabla-tarjetas td.ancho-completo::before { display: none; }
   .tabla-tarjetas tfoot { display: none; }
@@ -194,6 +195,10 @@ tfoot td { font-weight: 600; background: var(--azul-50); }
   .tabla-tarjetas th, .tabla-tarjetas td { padding: 10px 7px; }
   .tabla-tarjetas td.mono:first-child { min-width: 9.4rem; }
   .tabla-tarjetas .ajuste { min-width: 7rem; }
+  .tabla-resumen { table-layout: fixed; }
+  .tabla-resumen td { overflow-wrap: break-word; }
+  .tabla-resumen th, .tabla-resumen td.num { white-space: normal; }
+  .tabla-resumen .etiqueta-sit { white-space: normal; }
   .tabla-tarjetas td.mono.rfc { white-space: nowrap; word-break: normal; }
   tr.fila-alto td:first-child { box-shadow: inset 5px 0 0 var(--alto-solido); }
   tr.fila-medio td:first-child { box-shadow: inset 5px 0 0 var(--medio-solido); }

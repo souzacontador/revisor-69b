@@ -87,6 +87,7 @@ El último comando regenera `js/demo-data.js` si cambian los archivos de `demo/`
 | `js/dias-habiles.js` | Art. 12 CFF y días inhábiles adicionales |
 | `js/clasificador.js` | Cruce, veredictos, plazos y totales |
 | `js/exportar.js` | CSV en UTF-8 con BOM para Excel |
+| `js/exportar-xlsx.js` | Entregables en Excel (.xlsx) generados en el navegador: tabla por operación, resumen por proveedor y notas |
 | `js/app.js` | Interfaz DEMO y REAL |
 
 Herramienta de apoyo: no sustituye el análisis profesional de cada caso ni la consulta de las publicaciones oficiales en el DOF y en el portal del SAT.

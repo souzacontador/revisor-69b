@@ -7,8 +7,8 @@
   <meta name="description" content="Cruza CFDI de gastos contra el listado del artículo 69-B del CFF por RFC, clasifica cada operación, calcula el IVA y la deducción comprometidos y el plazo de 30 días hábiles.">
   <meta name="theme-color" content="#0A2540">
   <link rel="icon" href="assets/img/isotipo.png">
-  <link rel="stylesheet" href="css/marca.css?v=1.0.1">
-  <link rel="stylesheet" href="css/app.css?v=1.0.1">
+  <link rel="stylesheet" href="css/marca.css?v=1.1.3">
+  <link rel="stylesheet" href="css/app.css?v=1.1.3">
 </head>
 <body>
   <a class="saltar" href="#principal">Saltar al contenido</a>
@@ -159,6 +159,9 @@
             <li><strong>Tabla por operación:</strong> UUID, proveedor, RFC, fecha, subtotal, IVA, situación del proveedor y veredicto.</li>
             <li><strong>Resumen por proveedor listado:</strong> situación, fechas de publicación, IVA y deducción comprometidos, acción recomendada y fecha límite.</li>
           </ul>
+          <h3 style="margin-top:24px">Resumen por proveedor listado</h3>
+          <div id="demo-resumen-tabla"><p class="secundario">Ejecuta la revisión del paso 3 para generar los entregables.</p></div>
+          <p class="pequeno" style="margin-top:12px">La <strong>tabla por operación</strong> completa está en el <a href="#paso-3">paso 3</a>. Ambos entregables se descargan juntos en Excel:</p>
           <div class="acciones-fila no-imprimir" id="demo-exportar"></div>
           <div id="como-se-construyo" style="margin-top:24px"></div>
         </section>
@@ -221,6 +224,8 @@
           <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">4</span><h2 id="t-real-res">Resultados</h2></div>
           <div id="real-kpis"></div>
           <h3 style="margin-top:28px">Resumen por proveedor listado</h3>
+          <div id="real-resumen-tabla"></div>
+          <h3 style="margin-top:28px">Detalle por proveedor</h3>
           <div id="real-impacto"></div>
           <h3 style="margin-top:28px">Acción y plazo</h3>
           <div id="real-acciones"></div>
@@ -239,14 +244,15 @@
     </div>
   </footer>
 
-  <script src="js/util.js?v=1.0.1"></script>
-  <script src="js/dias-habiles.js?v=1.0.1"></script>
-  <script src="js/lector-csv.js?v=1.0.1"></script>
-  <script src="js/lector-cfdi.js?v=1.0.1"></script>
-  <script src="js/lector-zip.js?v=1.0.1"></script>
-  <script src="js/clasificador.js?v=1.0.1"></script>
-  <script src="js/exportar.js?v=1.0.1"></script>
-  <script src="js/demo-data.js?v=1.0.1"></script>
-  <script src="js/app.js?v=1.0.1"></script>
+  <script src="js/util.js?v=1.1.3"></script>
+  <script src="js/dias-habiles.js?v=1.1.3"></script>
+  <script src="js/lector-csv.js?v=1.1.3"></script>
+  <script src="js/lector-cfdi.js?v=1.1.3"></script>
+  <script src="js/lector-zip.js?v=1.1.3"></script>
+  <script src="js/clasificador.js?v=1.1.3"></script>
+  <script src="js/exportar.js?v=1.1.3"></script>
+  <script src="js/exportar-xlsx.js?v=1.1.3"></script>
+  <script src="js/demo-data.js?v=1.1.3"></script>
+  <script src="js/app.js?v=1.1.3"></script>
 </body>
 </html>

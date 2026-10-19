@@ -34,8 +34,8 @@ Empecemos por definir la estructura del revisor y cómo leer el CSV sin romper l
     real: { listado: null, fuente: null, cfdis: [], porUUID: new Map(), registro: { omitidos: [], errores: [] }, resultado: null, ajustes: {}, isr: { modo: 'no', tasa: 30, regimen: '' }, fechaRevision: U.hoyISO(), fechaDatos: '', filtro: 'TODOS', busqueda: '' }
   };
   const IDS = {
-    demo: { kpis: '#demo-kpis', operaciones: '#demo-operaciones', impacto: '#demo-impacto', acciones: '#demo-acciones', exportar: '#demo-exportar', isr: '#demo-parametros-isr' },
-    real: { kpis: '#real-kpis', operaciones: '#real-operaciones', impacto: '#real-impacto', acciones: '#real-acciones', exportar: '#real-exportar', isr: '#real-parametros-isr' }
+    demo: { kpis: '#demo-kpis', operaciones: '#demo-operaciones', impacto: '#demo-impacto', acciones: '#demo-acciones', exportar: '#demo-exportar', isr: '#demo-parametros-isr', resumen: '#demo-resumen-tabla' },
+    real: { kpis: '#real-kpis', operaciones: '#real-operaciones', impacto: '#real-impacto', acciones: '#real-acciones', exportar: '#real-exportar', isr: '#real-parametros-isr', resumen: '#real-resumen-tabla' }
   };
 
   const guardar = (k, v) => { try { localStorage.setItem('r69.' + k, v); } catch (e) { /* almacenamiento no disponible */ } };
@@ -251,17 +251,61 @@ Empecemos por definir la estructura del revisor y cómo leer el CSV sin romper l
     }).join('')}</div>`;
   }
 
+  /** Entregable: resumen por proveedor listado en una sola tabla con los campos pedidos. */
+  function renderResumenTabla(modo) {
+    const r = estado[modo].resultado, cont = $(IDS[modo].resumen);
+    if (!cont) return;
+    if (!r.proveedores.length) { cont.innerHTML = `<p>Ninguno de los ${r.emisores} proveedores aparece en el listado consultado (${h(r.fechaDatos)}).</p>`; return; }
+    const pubs = p => p.episodios.map((e, i) => (p.episodios.length > 1 ? `<strong>Episodio ${i + 1}</strong><br>` : '') + e.fechas.map(f =>
+      `${h(f.etapa)}: SAT ${f.fechaSAT ? U.fechaMX(f.fechaSAT) : 's/f'} · DOF ${f.fechaDOF ? U.fechaMX(f.fechaDOF) : 's/f'}`).join('<br>')).join('<br>');
+    const limite = p => {
+      const pl = p.plazo;
+      if (pl && pl.vence && p.episodios.length === 1) return `<span class="etiqueta-sit sin-punto ${pl.estado === 'VENCIDO' ? 'nivel-alto' : 'nivel-medio'}">${U.fechaMX(pl.vence)}${pl.estado === 'VENCIDO' ? ' · vencido' : ''}</span>`;
+      return h(p.fechaLimite);
+    };
+    const comp = r.proveedores.filter(p => p.veredicto.clave !== 'SIN_RIESGO');
+    const suma = k => U.deCentavos(comp.reduce((s, p) => s + U.centavos(p[k]), 0));
+    cont.innerHTML = `<div class="tabla-envoltura tabla-tarjetas"><table class="tabla-resumen">
+      <caption class="oculto-visual">Resumen por proveedor listado</caption>
+      <colgroup><col style="width:17%"><col style="width:12%"><col style="width:17%"><col style="width:10%"><col style="width:11%"><col style="width:22%"><col style="width:11%"></colgroup>
+      <thead><tr><th scope="col">Proveedor</th><th scope="col">Situación</th><th scope="col">Fechas de publicación relevantes</th><th scope="col" class="num">IVA comprometido</th><th scope="col" class="num">Deducción comprometida</th><th scope="col">Acción recomendada</th><th scope="col">Fecha límite</th></tr></thead>
+      <tbody>${r.proveedores.map(p => {
+        const sinRiesgo = p.veredicto.clave === 'SIN_RIESGO';
+        return `<tr class="fila-${p.veredicto.nivel}">
+        <td data-label="Proveedor"><div><strong>${h(p.nombre)}</strong><br><span class="mono">${h(p.rfc)}</span></div></td>
+        <td data-label="Situación"><div class="sit-ver">${etiquetaSituacion(p.situacion)}${etiquetaVeredicto(p.veredicto)}</div></td>
+        <td data-label="Publicaciones"><div class="pequeno">${pubs(p)}</div></td>
+        <td data-label="IVA comprometido" class="num">${sinRiesgo ? '—' : U.moneda(p.ivaComprometido)}</td>
+        <td data-label="Deducción comprometida" class="num">${sinRiesgo ? '—' : U.moneda(p.deduccion)}</td>
+        <td data-label="Acción recomendada"><div class="pequeno">${h(p.accion)}</div></td>
+        <td data-label="Fecha límite"><div>${limite(p)}</div></td></tr>`;
+      }).join('')}</tbody>
+      <tfoot><tr><td colspan="3">Total comprometido (${comp.length} proveedor${comp.length === 1 ? '' : 'es'})</td><td class="num">${U.moneda(suma('ivaComprometido'))}</td><td class="num">${U.moneda(suma('deduccion'))}</td><td colspan="2"></td></tr></tfoot>
+    </table></div>
+    <p class="pequeno secundario" style="margin-top:8px">La deducción comprometida es el monto potencial (SubTotal − Descuento) o el importe que ajustaste en la tabla por operación. Desvirtuados y sentencias favorables conservan sus efectos.</p>`;
+  }
+
+  function metaExcel(modo) {
+    if (modo === 'demo') return { contribuyente: 'Contribuyente Demo Laboratorio SA de CV (datos ficticios)', fuenteListado: 'Listado_Completo_69-B.csv del caso de práctica' };
+    const st = estado.real, c = st.cfdis[0];
+    const receptor = c ? [c.receptorNombre, c.receptorRFC].filter(Boolean).join(' · ') : 'Contribuyente';
+    const fuente = st.fuente && st.fuente.tipo === 'servidor' ? 'copia diaria del portal de datos abiertos del SAT' : (st.fuente ? 'archivo cargado manualmente: ' + st.fuente.nombre : '');
+    return { contribuyente: receptor, fuenteListado: fuente };
+  }
+
   function renderExportar(modo) {
     const r = estado[modo].resultado;
     const base = `revisor69b_${modo}_${r.fechaRevision}`;
     $(IDS[modo].exportar).innerHTML = `
+      <button type="button" class="btn btn--primario" data-exp="xlsx">${ico('i-bajar')}Descargar entregables en Excel (.xlsx)</button>
       <button type="button" class="btn btn--secundario" data-exp="ops">${ico('i-bajar')}Tabla por operación (CSV)</button>
       <button type="button" class="btn btn--secundario" data-exp="prov">${ico('i-bajar')}Resumen por proveedor (CSV)</button>
       <button type="button" class="btn btn--secundario" data-exp="imprimir">${ico('i-imprimir')}Imprimir o guardar PDF</button>`;
     $(IDS[modo].exportar).onclick = (e) => {
       const b = e.target.closest('[data-exp]'); if (!b) return;
       const res = estado[modo].resultado;
-      if (b.dataset.exp === 'ops') E.descargar(base + '_operaciones.csv', E.csvOperaciones(res));
+      if (b.dataset.exp === 'xlsx') R69.xlsx.descargarXLSX(base + '_entregables.xlsx', R69.xlsx.libroEntregables(res, metaExcel(modo)));
+      else if (b.dataset.exp === 'ops') E.descargar(base + '_operaciones.csv', E.csvOperaciones(res));
       else if (b.dataset.exp === 'prov') E.descargar(base + '_proveedores.csv', E.csvProveedores(res));
       else window.print();
     };
@@ -308,7 +352,7 @@ Empecemos por definir la estructura del revisor y cómo leer el CSV sin romper l
   function recalcular(modo, tablaCompleta) {
     const st = estado[modo];
     st.resultado = C.revisar(st.cfdis, st.listado, Object.assign({ fechaRevision: st.fechaRevision, fechaDatos: st.fechaDatos, ajustes: st.ajustes }, opcionesISR(st)));
-    renderKPIs(modo); renderImpacto(modo); renderAcciones(modo);
+    renderKPIs(modo); renderImpacto(modo); renderAcciones(modo); renderResumenTabla(modo);
     if (tablaCompleta !== false) { renderOperaciones(modo); renderExportar(modo); }
   }
 
