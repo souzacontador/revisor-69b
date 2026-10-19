@@ -6,10 +6,14 @@ DSouza Consultores Fiscales · C.P. Daniel Souza Vázquez · daniel@dsouzaconsul
 
 ## Modos
 
-| Modo | Datos | Uso |
+Los dos modos usan la misma pantalla y el mismo flujo: **1 Listado del 69-B · 2 CFDI del cliente · 3 Parámetros · 4 Resultados y entregables**. Lo único que cambia es el listado del 69-B.
+
+| Modo | Listado del 69-B | CFDI y fecha de revisión |
 |---|---|---|
-| **DEMO** | 40 CFDI y listado ficticios del caso del laboratorio (`demo/`), fecha de revisión 30/09/2026 | Sigue los 5 pasos del caso y genera los entregables. Funciona incluso abriendo `index.html` con doble clic. |
-| **REAL** | Tus CFDI (XML o ZIP) y el listado vigente del SAT | Los CFDI se leen **solo en el navegador**; no se envían a ningún servidor. |
+| **DEMO** | Listado del caso de práctica (`demo/`, datos ficticios), precargado | Los 40 CFDI del caso vienen precargados y se pueden limpiar, restaurar o complementar; la fecha inicia en 30/09/2026 y es editable |
+| **REAL** | Listado vigente del SAT: copia diaria guardada en el sitio o CSV cargado a mano | Los carga el usuario (XML o ZIP); la fecha inicia en el día de hoy |
+
+Los CFDI se leen **solo en el navegador**; no se envían a ningún servidor. Cada modo conserva su propio estado al cambiar entre ellos.
 
 ## Criterios aplicados
 
