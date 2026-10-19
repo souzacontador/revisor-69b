@@ -443,7 +443,6 @@ Empecemos por definir la estructura del revisor y cómo leer el CSV sin romper l
 
     renderParametrosISR('demo');
     enlazarTabla('demo');
-    renderComoSeConstruyo();
 
     $('#demo-generar').addEventListener('click', () => $('#demo-ejecutar').click());
     $('#demo-ejecutar').addEventListener('click', () => {
@@ -453,19 +452,6 @@ Empecemos por definir la estructura del revisor y cómo leer el CSV sin romper l
       $('#demo-estado').textContent = `Listo: ${r.operaciones.length} operaciones clasificadas en ${Math.max(1, Math.round(performance.now() - t0))} ms.`;
       $('#demo-ejecutar').innerHTML = `${ico('i-recargar')}Volver a ejecutar`;
     });
-  }
-
-  function renderComoSeConstruyo() {
-    $('#como-se-construyo').innerHTML = `
-      <h3>Cómo se construyó</h3>
-      <ol class="numerada texto">
-        <li><strong>Lectura del listado</strong> (<code>js/lector-csv.js</code>): decodifica Windows-1252, detecta el encabezado por el nombre de sus columnas (el SAT trae 2 o 3 renglones de título), respeta comillas y saltos de línea dentro de campos, normaliza el RFC (sin espacios, en mayúsculas, conservando Ñ y &) y guarda <em>todos</em> los episodios de cada RFC.</li>
-        <li><strong>Lectura de los CFDI</strong> (<code>js/lector-cfdi.js</code>): nodos del Anexo 20 — <code>cfdi:Emisor/@Rfc</code>, <code>@Fecha</code>, <code>@SubTotal</code>, <code>@Descuento</code>, IVA de <code>cfdi:Impuestos/cfdi:Traslados</code> con <code>Impuesto="002"</code> a nivel comprobante y el UUID de <code>tfd:TimbreFiscalDigital</code>.</li>
-        <li><strong>Clasificación</strong> (<code>js/clasificador.js</code>): el veredicto depende de la situación vigente del proveedor, no de la fecha de la factura («no producen ni produjeron efecto fiscal alguno»). El nombre nunca decide; si se parece al de un contribuyente listado, solo se anota.</li>
-        <li><strong>Plazo</strong> (<code>js/dias-habiles.js</code>): 30 días hábiles a partir del día siguiente a la publicación del definitivo en el DOF, sin sábados, domingos ni inhábiles del art. 12 CFF (lunes móviles de febrero, marzo y noviembre; 1 y 5 de mayo; 16 de septiembre; 25 de diciembre; 1 de diciembre sexenal) ni los días que declare la RMF (regla 2.1.6).</li>
-        <li><strong>Modo REAL</strong>: una GitHub Action descarga el listado oficial cada día, lo valida y conserva la última versión válida; los CFDI (XML o ZIP) se leen solo en el navegador.</li>
-      </ol>
-      <p class="pequeno secundario">Fuentes de verificación: texto del CFF 2026 (arts. 12 y 69-B) y de la RMF 2026 (regla 2.1.6); Anexo 20 (cuaderno «CFDI 4.0»); manuales de materialidad (cuaderno «Curso Fiscalización 2026 DSV»). Los resultados del caso se verificaron con pruebas automáticas (<code>tests/</code>).</p>`;
   }
 
   // ====================== MODO REAL ======================
