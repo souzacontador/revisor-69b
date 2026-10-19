@@ -445,6 +445,7 @@ Empecemos por definir la estructura del revisor y cómo leer el CSV sin romper l
     enlazarTabla('demo');
     renderComoSeConstruyo();
 
+    $('#demo-generar').addEventListener('click', () => $('#demo-ejecutar').click());
     $('#demo-ejecutar').addEventListener('click', () => {
       const t0 = performance.now();
       recalcular('demo', true);
