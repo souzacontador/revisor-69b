@@ -1,6 +1,6 @@
 {
   "name": "revisor-69b",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "private": true,
   "description": "Revisor de Proveedores 69-B: aplicación estática (HTML5, CSS y JavaScript). Las dependencias son solo para las pruebas.",
   "scripts": {

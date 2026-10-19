@@ -30,7 +30,7 @@ function comprimirPS(origen, destino) {
 
 /**
  * Escritor mínimo de ZIP para pruebas. Cada entrada:
- *   { nombre, datos (Buffer), metodo: 0|8|99, dataDescriptor, cifrado, tam64, comprimidoCrudo, utf8 }
+ *   { nombre, datos (Buffer), metodo: 0|8|99, dataDescriptor, cifrado, tam64, comprimidoCrudo, utf8, crcMalo }
  * - dataDescriptor: el encabezado local lleva ceros y los tamaños van tras los datos (bit 3).
  * - tam64: el directorio central marca 0xFFFFFFFF en tamaños (simula ZIP64).
  * - comprimidoCrudo: bytes comprimidos tal cual (para simular deflate corrupto).
@@ -49,12 +49,14 @@ function construirZip(entradas, comentario) {
     const dd = !!e.dataDescriptor;
     const banderas = (dd ? 0x0008 : 0) | (e.cifrado ? 0x0001 : 0) | (e.utf8 ? 0x0800 : 0);
     const usize = e.datos.length;
+    const crc = e.crcMalo ? (zlib.crc32(e.datos) ^ 1) >>> 0 : zlib.crc32(e.datos);
 
     const cab = Buffer.alloc(30);
     cab.writeUInt32LE(0x04034b50, 0);
     cab.writeUInt16LE(20, 4);
     cab.writeUInt16LE(banderas, 6);
     cab.writeUInt16LE(metodo, 8);
+    cab.writeUInt32LE(dd ? 0 : crc, 14);
     cab.writeUInt32LE(dd ? 0 : comp.length, 18);
     cab.writeUInt32LE(dd ? 0 : usize, 22);
     cab.writeUInt16LE(nombre.length, 26);
@@ -65,6 +67,7 @@ function construirZip(entradas, comentario) {
     if (dd) {
       const dsc = Buffer.alloc(16);
       dsc.writeUInt32LE(0x08074b50, 0);
+      dsc.writeUInt32LE(crc, 4);
       dsc.writeUInt32LE(comp.length, 8);
       dsc.writeUInt32LE(usize, 12);
       cuerpo.push(dsc);
@@ -77,6 +80,7 @@ function construirZip(entradas, comentario) {
     cd.writeUInt16LE(20, 6);
     cd.writeUInt16LE(banderas, 8);
     cd.writeUInt16LE(metodo, 10);
+    cd.writeUInt32LE(crc, 16);
     cd.writeUInt32LE(e.tam64 ? 0xFFFFFFFF : comp.length, 20);
     cd.writeUInt32LE(e.tam64 ? 0xFFFFFFFF : usize, 24);
     cd.writeUInt16LE(nombre.length, 28);
@@ -257,4 +261,35 @@ test('nombres: bit 11 activo decodifica UTF-8', async () => {
   const zip = construirZip([{ nombre: 'Ñandú/niño.xml', datos: xmlDe('n'), utf8: true }]);
   const { archivos } = await extraerXML(zip);
   assert.deepStrictEqual(nombres(archivos), ['Ñandú/niño.xml']);
+});
+
+test('CRC-32 que no coincide: la entrada va a omitidos como dañada', async () => {
+  const zip = construirZip([
+    { nombre: 'bien.xml', datos: xmlDe('ok'), metodo: 8 },
+    { nombre: 'danado.xml', datos: xmlDe('x'), metodo: 0, crcMalo: true }
+  ]);
+  const { archivos, omitidos } = await extraerXML(zip);
+  assert.deepStrictEqual(nombres(archivos), ['bien.xml']);
+  assert.strictEqual(omitidos.length, 1);
+  assert.match(omitidos[0].motivo, /CRC-32/);
+});
+
+test('topes por carga: archivos y bytes, compartidos entre ZIP y anidados', async () => {
+  const tres = construirZip([1, 2, 3].map(i => ({ nombre: `f${i}.xml`, datos: xmlDe('n' + i) })));
+  // Tope de archivos: 2 → el tercero detiene la carga con err.limite
+  const c1 = R69.zip.nuevoContador({ archivos: 2, bytes: 1e9 });
+  await assert.rejects(extraerXML(tres, 'tres.zip', c1), e => e.limite === true && /2 archivos XML/.test(e.message));
+  // El contador se comparte: dos ZIP de 3 archivos con tope de 5
+  const c2 = R69.zip.nuevoContador({ archivos: 5, bytes: 1e9 });
+  await extraerXML(tres, 'a.zip', c2);
+  await assert.rejects(extraerXML(tres, 'b.zip', c2), e => e.limite === true);
+  // Tope de bytes: cuenta también el ZIP anidado
+  const anidado = construirZip([{ nombre: 'interno.zip', datos: tres }]);
+  const c3 = R69.zip.nuevoContador({ archivos: 100, bytes: tres.length + 10 });
+  await assert.rejects(extraerXML(anidado, 'anidado.zip', c3), e => e.limite === true && /MB/.test(e.message));
+  // Dentro de los topes, todo se lee
+  const c4 = R69.zip.nuevoContador();
+  const r = await extraerXML(anidado, 'anidado.zip', c4);
+  assert.strictEqual(r.archivos.length, 3);
+  assert.strictEqual(c4.archivos, 3);
 });

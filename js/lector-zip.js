@@ -18,6 +18,34 @@
   const METODO_DEFLATE = 8;         // deflate
   const PROFUNDIDAD_MAX = 2;        // ZIP principal = 0; ZIP dentro de ZIP dentro de ZIP no se abre
 
+  /* Topes por carga (todos los ZIP de una misma carga, incluidos los anidados, comparten el contador).
+   * Protegen la memoria del navegador frente a un ZIP desproporcionado o malicioso. */
+  const LIMITES = { archivos: 10000, bytes: 500 * 1024 * 1024 };
+  function nuevoContador(limites) { return { archivos: 0, bytes: 0, limites: limites || LIMITES }; }
+  /** Error que detiene toda la carga (no solo la entrada actual). */
+  function errorLimite(motivo) { const e = new Error(motivo); e.limite = true; return e; }
+  /** Suma una entrada al contador; lanza errorLimite si la carga excede los topes. */
+  function contar(contador, bytes, esArchivo) {
+    if (!contador) return;
+    const L = contador.limites;
+    if (esArchivo && contador.archivos + 1 > L.archivos) {
+      throw errorLimite(`La carga excede el tope de ${L.archivos.toLocaleString('es-MX')} archivos XML. Divídela en partes más pequeñas.`);
+    }
+    if (contador.bytes + bytes > L.bytes) {
+      throw errorLimite(`La carga excede el tope de ${Math.round(L.bytes / 1048576).toLocaleString('es-MX')} MB descomprimidos. Divídela en partes más pequeñas.`);
+    }
+    if (esArchivo) contador.archivos++;
+    contador.bytes += bytes;
+  }
+
+  /* CRC-32 (polinomio 0xEDB88320, el de ZIP) para comprobar que cada entrada se leyó íntegra. */
+  const TABLA_CRC = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+    return t;
+  })();
+  function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = TABLA_CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+
   /* Nombres: con el bit 11 activo el nombre es UTF-8. Sin él, la especificación ZIP indica
    * CP437 (IBM PC). TextDecoder no trae CP437, así que se usa esta tabla para 0x80–0xFF
    * (por ejemplo 0xA4 = «ñ»). */
@@ -89,6 +117,7 @@
       entradas.push({
         banderas: v.getUint16(p + 8, true),
         metodo: v.getUint16(p + 10, true),
+        crc: v.getUint32(p + 16, true),
         tamComprimido: v.getUint32(p + 20, true),
         tamDescomprimido: v.getUint32(p + 24, true),
         offsetLocal: v.getUint32(p + 42, true),
@@ -139,11 +168,15 @@
 
   async function leerContenido(u8, v, e) {
     const comprimido = leerDatos(u8, v, e);
+    let contenido;
     if (e.metodo === METODO_STORED) {
       if (e.tamComprimido !== e.tamDescomprimido) throw new Error('tamaños inconsistentes en entrada sin compresión');
-      return comprimido.slice();   // copia: no retiene el ZIP completo
+      contenido = comprimido.slice();   // copia: no retiene el ZIP completo
+    } else {
+      contenido = await descomprimir(comprimido, e.tamDescomprimido);
     }
-    return descomprimir(comprimido, e.tamDescomprimido);
+    if (crc32(contenido) !== e.crc) throw new Error('el CRC-32 no coincide: el archivo está dañado');
+    return contenido;
   }
 
   /** "\" pasa a "/" (APPNOTE exige "/"; algunos programas de Windows lo escriben al revés). */
@@ -157,7 +190,7 @@
   }
 
   /** Procesa un ZIP ya en memoria. "prefijo" es la ruta del ZIP contenedor; "profundidad" es su nivel de anidamiento. */
-  async function extraer(u8, prefijo, profundidad) {
+  async function extraer(u8, prefijo, profundidad, contador) {
     const v = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
     const entradas = leerDirectorioCentral(u8, v);
     const archivos = [];
@@ -188,16 +221,19 @@
         continue;
       }
 
+      // El tamaño declarado se cuenta antes de descomprimir; la descompresión no permite excederlo
+      contar(contador, e.tamDescomprimido, esXML);
       try {
         const contenido = await leerContenido(u8, v, e);
         if (esXML) {
           archivos.push({ nombre: ruta, bytes: contenido });
         } else {
-          const interno = await extraer(contenido, ruta + '/', profundidad + 1);
+          const interno = await extraer(contenido, ruta + '/', profundidad + 1, contador);
           for (const a of interno.archivos) archivos.push(a);
           for (const o of interno.omitidos) omitidos.push(o);
         }
       } catch (err) {
+        if (err.limite) throw err;
         const prefijoMotivo = esZIP ? 'ZIP anidado no válido: ' : 'error al leer el contenido: ';
         omitidos.push({ nombre: ruta, motivo: prefijoMotivo + err.message });
       }
@@ -206,17 +242,19 @@
   }
 
   /** Promesa con { archivos: [{ nombre, bytes }], omitidos: [{ nombre, motivo }] }.
-   *  Rechaza si los datos no son un ZIP legible en su directorio central. */
-  async function extraerXML(datos, nombreZip) {
+   *  Rechaza si los datos no son un ZIP legible en su directorio central, o (con err.limite)
+   *  si la carga excede los topes. "contador" (de nuevoContador) se comparte entre los ZIP de una carga. */
+  async function extraerXML(datos, nombreZip, contador) {
     const etiqueta = nombreZip ? 'El archivo «' + nombreZip + '»' : 'El archivo';
     const u8 = aBytes(datos);
     try {
-      return await extraer(u8, '', 0);
+      return await extraer(u8, '', 0, contador || nuevoContador());
     } catch (err) {
+      if (err.limite) throw err;
       throw new Error(etiqueta + ': ' + err.message + '.');
     }
   }
 
-  R69.zip = { extraerXML };
+  R69.zip = { extraerXML, LIMITES, nuevoContador, contar };
   if (typeof module !== 'undefined' && module.exports) module.exports = R69;
 })(typeof window !== 'undefined' ? window : globalThis);

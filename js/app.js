@@ -117,9 +117,11 @@
         <span><b>${r.operaciones.length}</b> CFDI analizados</span>
         <span><b>${r.emisores}</b> proveedores</span>
         <span><b>${r.listados}</b> en el listado 69-B</span>
+        ${r.receptor ? `<span>Receptor: <b class="mono">${h(r.receptor)}</b></span>` : ''}
         <span>Fecha de revisión: <b>${U.fechaMX(r.fechaRevision)}</b></span>
         <span>Listado consultado: <b>${h(r.fechaDatos || 'sin fecha')}</b></span>
       </div>
+      ${r.excluidos && r.excluidos.length ? `<div class="aviso aviso--medio" style="margin-top:12px">${ico('i-info')}<p>No se incluyeron ${r.excluidos.reduce((t, x) => t + x.n, 0)} CFDI de otros receptores (${r.excluidos.map(x => h(x.rfc)).join(', ')}). Para revisarlos, elige otro receptor en el paso 2.</p></div>` : ''}
       ${(r.avisosListado || []).map(a => `<div class="aviso aviso--alto" style="margin-top:12px">${ico('i-alerta')}<p>${h(a)}</p></div>`).join('')}
       <div class="rejilla rejilla--${tarjetas.length === 4 ? '4' : '3'}" style="margin-top:16px">${tarjetas.join('')}</div>
       <p class="pequeno secundario" style="margin-top:12px">${h(NOTA_IVA)}</p>`;
@@ -286,11 +288,28 @@
   }
 
   function metaExcel() {
-    const s = st(), c = s.cfdis[0];
+    const s = st(), c = cfdisActivos(s)[0];
     const receptor = c ? [c.receptorNombre, c.receptorRFC].filter(Boolean).join(' · ') : 'Contribuyente';
     const fuente = !s.fuente ? '' : s.fuente.tipo === 'caso' ? 'listado del caso de práctica (datos ficticios)'
       : s.fuente.tipo === 'servidor' ? 'copia diaria del portal de datos abiertos del SAT' : 'archivo cargado manualmente: ' + s.fuente.nombre;
-    return { contribuyente: receptor + (modo === 'demo' ? ' (modo DEMO)' : ''), fuenteListado: fuente, avisosListado: (s.resultado && s.resultado.avisosListado) || [], notaIVA: NOTA_IVA };
+    const r = s.resultado, ahora = new Date();
+    const trazabilidad = {
+      fechaHora: `${U.fechaMX(U.hoyISO())} ${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`,
+      modo: modo === 'demo' ? 'DEMO (caso de práctica)' : 'REAL',
+      version: R69.VERSION,
+      receptor,
+      excluidos: r && r.excluidos ? r.excluidos.map(x => `${x.rfc} (${x.n} CFDI)`).join('; ') : '',
+      fuente,
+      fechaDatos: s.fechaDatos,
+      registros: s.listado ? s.listado.registros.length : 0,
+      huella: s.huella || 'No disponible',
+      huellaMeta: s.fuente && s.fuente.tipo === 'servidor' && s.fuente.meta ? (s.fuente.meta.sha256 || '') : '',
+      calendario: R69.dias.DIAS_ADICIONALES.map(d => `${U.fechaMX(d.desde)} a ${U.fechaMX(d.hasta)}: ${d.motivo}`),
+      isr: r && r.tasaISR != null ? `${(r.tasaISR * 100).toFixed(2).replace(/\.00$/, '')} %${r.regimenISR ? ' (' + r.regimenISR + ')' : ''}` : 'Sin estimación de ISR',
+      ajustes: r ? r.operaciones.filter(o => o.ajustado) : [],
+      registro: s.registro.omitidos.map(x => ['Omitido', x.archivo, x.motivo]).concat(s.registro.errores.map(x => ['Con error', x.archivo, x.motivo]))
+    };
+    return { contribuyente: receptor + (modo === 'demo' ? ' (modo DEMO)' : ''), fuenteListado: fuente, avisosListado: (r && r.avisosListado) || [], notaIVA: NOTA_IVA, trazabilidad };
   }
 
   function renderExportar() {
@@ -345,6 +364,9 @@
     if (!s.listado || !s.fuente) return avisos;
     const n = s.listado.registros.length;
     const dias = iso => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    if (s.fuente.tipo === 'servidor' && s.huella && s.fuente.meta && s.fuente.meta.sha256 && s.fuente.meta.sha256 !== s.huella) {
+      avisos.push('La huella SHA-256 del listado no coincide con la registrada por la actualización diaria: la copia pudo cambiar mientras se leía. Vuelve a cargar el listado.');
+    }
     if (s.fuente.tipo === 'manual' && n < 5000) {
       avisos.push(`El listado cargado tiene solo ${n.toLocaleString('es-MX')} registros: es un archivo parcial. «No listado» significa que el RFC no está en ese archivo, no que esté ausente del listado completo del SAT.`);
     }
@@ -363,8 +385,11 @@
   function recalcular(tablaCompleta) {
     const s = st();
     const parcial = s.fuente && s.fuente.tipo === 'manual' && s.listado.registros.length < 5000 ? s.listado.registros.length : null;
-    s.resultado = C.revisar(s.cfdis, s.listado, Object.assign({ fechaRevision: s.fechaRevision, fechaDatos: s.fechaDatos, ajustes: s.ajustes, registrosListadoParcial: parcial }, opcionesISR(s)));
+    const activos = cfdisActivos(s);
+    s.resultado = C.revisar(activos, s.listado, Object.assign({ fechaRevision: s.fechaRevision, fechaDatos: s.fechaDatos, ajustes: s.ajustes, registrosListadoParcial: parcial }, opcionesISR(s)));
     s.resultado.avisosListado = avisosListado(s);
+    s.resultado.receptor = activos.length ? activos[0].receptorRFC : '';
+    s.resultado.excluidos = receptoresDe(s).filter(x => x.rfc !== s.resultado.receptor);
     renderKPIs(); renderImpacto(); renderAcciones(); renderResumenTabla();
     if (tablaCompleta !== false) { renderOperaciones(); renderExportar(); }
   }
@@ -395,15 +420,34 @@
     }
     filas.push(['Leyenda del listado', L.actualizadoAl ? `«Información actualizada al ${h(L.actualizadoAl)}»` : 'El archivo no trae leyenda de actualización.']);
     filas.push(['Registros', `${L.registros.length.toLocaleString('es-MX')} — ${Object.entries(L.conteos).filter(([k, v]) => k !== 'Otra' || v).map(([k, v]) => `${h(k)} ${v.toLocaleString('es-MX')}`).join(' · ')}`]);
+    filas.push(['Huella SHA-256 del archivo', s.huella ? `<span class="mono" style="word-break:break-all">${h(s.huella)}</span>` : s.huella === null ? 'Calculando…' : 'No disponible en este navegador.']);
     filas.push(['RFC con varios episodios', `${L.rfcConVariosEpisodios.toLocaleString('es-MX')} (se muestran todos sus episodios; si se contradicen: «Requiere revisión documental»)`]);
     const adv = L.advertencias.length ? `<details class="detalle"><summary>${L.advertencias.length} advertencia${L.advertencias.length === 1 ? '' : 's'} del archivo (no bloquean)</summary><ul class="registro-carga">${L.advertencias.slice(0, 200).map(a => `<li>${h(a)}</li>`).join('')}</ul></details>` : '';
     const aviso = s.avisoListado ? `<div class="aviso aviso--medio" style="margin-top:12px">${ico('i-alerta')}<p>${s.avisoListado}</p></div>` : '';
     cont.innerHTML = `<div class="aviso aviso--bajo">${ico('i-ok')}<p>Listado cargado. Se usará para la revisión.</p></div><dl>${filas.map(([k, v]) => `<dt>${h(k)}</dt><dd>${v}</dd>`).join('')}</dl>${adv}${aviso}`;
   }
 
-  function fijarListado(destino, listado, fuente, aviso) {
+  /** SHA-256 en hexadecimal con la API del navegador; '' si no está disponible. */
+  async function sha256(bytes) {
+    try {
+      if (!(window.crypto && crypto.subtle)) return '';
+      const d = await crypto.subtle.digest('SHA-256', bytes);
+      return Array.from(new Uint8Array(d), b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) { return ''; }
+  }
+
+  function fijarListado(destino, listado, fuente, aviso, bytes) {
     const s = estado[destino];
     s.listado = listado; s.fuente = fuente; s.avisoListado = aviso || '';
+    s.huella = bytes ? null : '';  // null = calculando
+    if (bytes) sha256(bytes).then(hx => {
+      if (s.listado !== listado) return;  // ya se cargó otro listado
+      s.huella = hx;
+      if (destino === modo) {
+        pintarEstadoListado();
+        if (s.resultado) { s.resultado.avisosListado = avisosListado(s); renderKPIs(); }
+      }
+    });
     const fLocal = (iso) => { const f = new Date(iso); return isNaN(f) ? '' : `${String(f.getDate()).padStart(2, '0')}/${String(f.getMonth() + 1).padStart(2, '0')}/${f.getFullYear()}`; };
     const descarga = fuente.tipo === 'servidor' && fuente.meta.ultimaDescargaExitosa ? `descarga del ${fLocal(fuente.meta.ultimaDescargaExitosa)}` : (fuente.tipo === 'manual' ? `archivo ${fuente.nombre}` : '');
     s.fechaDatos = [listado.actualizadoAl || '', descarga].filter(Boolean).join(' · ');
@@ -422,10 +466,11 @@
       const meta = await rm.json();
       const rc = await fetch('data/69b/Listado_completo_69-B.csv', { cache: 'no-store' });
       if (!rc.ok) throw new Error(rc.status === 404 ? 'sin-copia' : 'HTTP ' + rc.status);
-      const listado = R69.csv.leerListado(R69.csv.decodificar(new Uint8Array(await rc.arrayBuffer())));
+      const bytesCSV = new Uint8Array(await rc.arrayBuffer());
+      const listado = R69.csv.leerListado(R69.csv.decodificar(bytesCSV));
       const v = R69.csv.validarListado(listado, { minimoRegistros: 5000 });
       if (!v.ok) throw new Error('La copia guardada no pasó la validación: ' + v.errores.join(' '));
-      fijarListado('real', listado, { tipo: 'servidor', meta });
+      fijarListado('real', listado, { tipo: 'servidor', meta }, '', bytesCSV);
     } catch (e) {
       const m = e.message === 'archivo-local'
         ? '<p>La aplicación está abierta como archivo local, así que no puede leer la copia guardada del listado. Ábrela desde GitHub Pages o desde tu sitio web, o usa <strong>«Cargar CSV descargado del SAT»</strong>.</p>'
@@ -443,11 +488,12 @@
     if (!archivo) return;
     $('#listado-estado').innerHTML = '<p class="cargando">Leyendo el archivo…</p>';
     try {
-      const listado = R69.csv.leerListado(R69.csv.decodificar(new Uint8Array(await archivo.arrayBuffer())));
+      const bytesCSV = new Uint8Array(await archivo.arrayBuffer());
+      const listado = R69.csv.leerListado(R69.csv.decodificar(bytesCSV));
       const v = R69.csv.validarListado(listado, { minimoRegistros: 1 });
       if (!v.ok) throw new Error(v.errores.join(' '));
       const aviso = listado.registros.length < 5000 ? `El archivo tiene solo ${listado.registros.length} registros. El listado completo del SAT tiene más de 10,000: verifica que sea el «Listado completo 69-B».` : '';
-      fijarListado('real', listado, { tipo: 'manual', nombre: archivo.name, fechaArchivo: archivo.lastModified }, aviso);
+      fijarListado('real', listado, { tipo: 'manual', nombre: archivo.name, fechaArchivo: archivo.lastModified }, aviso, bytesCSV);
     } catch (e) {
       if (estado.real.listado) { pintarEstadoListado(); $('#listado-estado').insertAdjacentHTML('afterbegin', `<div class="aviso aviso--alto" style="margin-bottom:12px">${ico('i-alerta')}<p>No se usó «${h(archivo.name)}»: ${h(e.message)} Se conserva el listado anterior.</p></div>`); }
       else pintarEstadoListado(`<p>No se pudo usar «${h(archivo.name)}»: ${h(e.message)}</p>`);
@@ -492,13 +538,17 @@
     const generacion = s.generacion || 0;
     const vigente = () => (s.generacion || 0) === generacion;  // false si se inició un nuevo análisis durante la carga
     const antes = s.cfdis.length;
+    // Punto de restauración: si la carga excede los topes, se deshace completa
+    const marca = { omitidos: s.registro.omitidos.length, errores: s.registro.errores.length };
+    const contador = R69.zip.nuevoContador();
     for (const a of archivos) {
       const nombre = a.webkitRelativePath || a.rutaCarpeta || a.name;
       try {
         const bytes = new Uint8Array(await a.arrayBuffer());
         if (!vigente()) return;
+        if (/\.xml$/i.test(nombre)) R69.zip.contar(contador, bytes.length, true);
         if (/\.zip$/i.test(nombre)) {
-          const z = await R69.zip.extraerXML(bytes, nombre);
+          const z = await R69.zip.extraerXML(bytes, nombre, contador);
           if (!vigente()) return;
           z.omitidos.forEach(o => s.registro.omitidos.push({ archivo: nombre + ' › ' + o.nombre, motivo: o.motivo }));
           z.archivos.forEach(x => agregarTexto(s, textoXML(x.bytes), nombre + ' › ' + x.nombre));
@@ -506,6 +556,12 @@
         else s.registro.omitidos.push({ archivo: nombre, motivo: 'No es un archivo XML ni ZIP.' });
       } catch (e) {
         if (!vigente()) return;
+        if (e.limite) {
+          s.cfdis.splice(antes).forEach(c => s.porUUID.delete(c.uuid));
+          s.registro.omitidos.length = marca.omitidos; s.registro.errores.length = marca.errores;
+          s.registro.errores.push({ archivo: `Carga de ${archivos.length} archivo(s)`, motivo: e.message + ' No se incorporó ningún comprobante de esta carga.' });
+          break;
+        }
         s.registro.errores.push({ archivo: nombre, motivo: e.message || 'No se pudo leer el archivo.' });
       }
     }
@@ -538,8 +594,30 @@
     return { archivos, carpeta: true };
   }
 
+  /** Receptores de los CFDI cargados, del que tiene más comprobantes al que tiene menos. */
+  function receptoresDe(s) {
+    const m = new Map();
+    s.cfdis.forEach(c => {
+      const x = m.get(c.receptorRFC) || { rfc: c.receptorRFC, nombre: c.receptorNombre, n: 0 };
+      x.n++; m.set(c.receptorRFC, x);
+    });
+    return [...m.values()].sort((a, b) => b.n - a.n || a.rfc.localeCompare(b.rfc));
+  }
+  /** Receptor que se revisa: el elegido por el usuario o, de inicio, el de más CFDI. null si solo hay uno. */
+  function receptorActivo(s) {
+    const l = receptoresDe(s);
+    if (l.length <= 1) return null;
+    return l.some(x => x.rfc === s.receptor) ? s.receptor : l[0].rfc;
+  }
+  /** CFDI que entran a la revisión: solo los del receptor activo. */
+  function cfdisActivos(s) {
+    const r = receptorActivo(s);
+    return r ? s.cfdis.filter(c => c.receptorRFC === r) : s.cfdis;
+  }
+
   function limpiarCFDI(s) {
     s.generacion = (s.generacion || 0) + 1;  // las cargas que sigan en curso dejan de aplicar
+    s.receptor = null;
     s.cfdis = []; s.porUUID = new Map(); s.registro = { omitidos: [], errores: [] }; s.ajustes = {}; s.ultimaCarga = null; s.ignoradosCarpeta = null; s.resultado = null;
   }
 
@@ -557,7 +635,7 @@
       cont.innerHTML = s.mensajeNuevo ? `<div class="aviso aviso--bajo" style="margin-top:12px">${ico('i-ok')}<p><strong>Listo para iniciar un nuevo análisis.</strong> Carga los CFDI del siguiente cliente; el listado 69-B se conservó.</p></div>` : '';
       return;
     }
-    const receptores = [...new Set(s.cfdis.map(c => c.receptorRFC))];
+    const receptores = receptoresDe(s), activo = receptorActivo(s);
     const lista = (titulo, items) => items.length ? `<details class="detalle"><summary>${h(titulo)} (${items.length})</summary><ul class="registro-carga">${items.slice(0, 500).map(x => `<li><span class="mono">${h(x.archivo)}</span>: ${h(x.motivo)}</li>`).join('')}</ul></details>` : '';
     cont.innerHTML = `
       <ul class="carga-resumen">
@@ -566,15 +644,18 @@
         <li><span class="etiqueta-sit nivel-alto">${reg.errores.length} con error</span></li>
       </ul>
       ${s.ultimaCarga != null ? `<p class="pequeno secundario">Última carga: ${s.ultimaCarga} comprobante(s) nuevo(s)${s.ignoradosCarpeta ? `; ${s.ignoradosCarpeta === 1 ? 'se ignoró 1 archivo de la carpeta que no es' : `se ignoraron ${s.ignoradosCarpeta} archivos de la carpeta que no son`} XML ni ZIP` : ''}.</p>` : ''}
-      ${receptores.length > 1 ? `<div class="aviso aviso--medio">${ico('i-alerta')}<p>Los CFDI corresponden a ${receptores.length} receptores distintos (${receptores.map(h).join(', ')}). Verifica que sean del mismo cliente.</p></div>` : receptores.length ? `<p class="pequeno">Receptor: <span class="mono">${h(receptores[0])}</span></p>` : ''}
+      ${receptores.length > 1 ? `<div class="aviso aviso--medio">${ico('i-alerta')}<div><p>Los CFDI corresponden a ${receptores.length} receptores distintos. Cada revisión es de un solo cliente: elige el receptor. Los CFDI de los demás no se incluyen en la revisión ni en los entregables.</p>
+        <div class="campo" style="margin-top:8px"><label for="receptor-sel">Receptor a revisar</label>
+        <select id="receptor-sel">${receptores.map(x => `<option value="${h(x.rfc)}"${x.rfc === activo ? ' selected' : ''}>${h(x.rfc)}${x.nombre ? ' · ' + h(x.nombre) : ''} (${x.n} CFDI)</option>`).join('')}</select></div></div></div>` : receptores.length ? `<p class="pequeno">Receptor: <span class="mono">${h(receptores[0].rfc)}</span></p>` : ''}
       ${reg.omitidos.some(o => /^Tipo E\b/.test(o.motivo)) ? `<div class="aviso aviso--medio">${ico('i-alerta')}<p>Se omitieron CFDI de Egreso (notas de crédito). Si alguno corresponde a un proveedor listado, el IVA y la deducción comprometidos pueden estar sobrestimados: ajústalos en la tabla por operación.</p></div>` : ''}
       ${lista('Comprobantes omitidos', reg.omitidos)}${lista('Archivos con error', reg.errores)}`;
   }
 
   function actualizarBoton() {
     const s = st();
-    $('#ejecutar').disabled = !(s.listado && s.cfdis.length);
-    $('#estado-ejecucion').textContent = !s.listado ? 'Falta cargar el listado 69-B.' : !s.cfdis.length ? 'Falta cargar los CFDI.' : `Listo para ejecutar (${s.cfdis.length} CFDI).`;
+    const n = cfdisActivos(s).length, r = receptorActivo(s);
+    $('#ejecutar').disabled = !(s.listado && n);
+    $('#estado-ejecucion').textContent = !s.listado ? 'Falta cargar el listado 69-B.' : !n ? 'Falta cargar los CFDI.' : `Listo para ejecutar (${n} CFDI${r ? ' de ' + r : ''}).`;
   }
 
   // ====================== Inicio ======================
@@ -632,6 +713,14 @@
     zona.addEventListener('drop', async e => {
       try { const r = await archivosArrastrados(e.dataTransfer); procesarArchivos(r.archivos, r.carpeta); }
       catch (err) { procesarArchivos(e.dataTransfer.files); }
+    });
+    $('#cfdi-resumen').addEventListener('change', e => {
+      if (e.target.id !== 'receptor-sel') return;
+      const s = st();
+      s.receptor = e.target.value; s.resultado = null; s.descargado = false;
+      $('#resultados').hidden = true;
+      pintarResumenCFDI(); actualizarBoton();
+      $('#receptor-sel').focus();
     });
     const carpeta = $('#carpeta-input');
     if (!('webkitdirectory' in carpeta)) $('#carga-carpeta').hidden = true;  // el navegador no permite elegir carpetas
@@ -702,7 +791,8 @@
   function iniciar() {
     // DEMO: listado del caso y sus 40 CFDI precargados
     const D = window.R69_DEMO;
-    fijarListado('demo', R69.csv.leerListado(R69.csv.decodificar(bytesDeBase64(D.csvBase64))), { tipo: 'caso', nombre: D.archivoListado || 'Listado_Completo_69-B.csv' });
+    const bytesCaso = bytesDeBase64(D.csvBase64);
+    fijarListado('demo', R69.csv.leerListado(R69.csv.decodificar(bytesCaso)), { tipo: 'caso', nombre: D.archivoListado || 'Listado_Completo_69-B.csv' }, '', bytesCaso);
     cargarCFDICaso();
 
     enlazarEventos();

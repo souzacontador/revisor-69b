@@ -98,4 +98,25 @@ rechaza('<?xml version="1.0"?><factura/>', /No es un CFDI/, 'Otro XML');
 const control = leerCFDI(base, archivos[0]);
 ok(control.ok, 'CFDI base'); igual(control.cfdi.subtotal, Number(attrDe(base, 'cfdi:Comprobante', 'SubTotal')));
 
-console.log(`OK — ${pruebas} comprobaciones del lector de CFDI pasaron.`);
+// --- 3. Excel de entregables con la DEMO: hojas, trazabilidad e integridad del ZIP (CRC-32) ---
+require('../js/exportar-xlsx.js');
+require('../js/lector-zip.js');
+(async () => {
+  const ajustada = rev.operaciones.find(o => o.veredicto.clave === 'SIN_EFECTO');
+  const rAj = R69.clasificador.revisar(cfdis, listado, { fechaRevision: '2026-09-30', fechaDatos: listado.actualizadoAl, ajustes: { [ajustada.uuid]: { deduccion: 1000 } } });
+  const libro = R69.xlsx.libroEntregables(rAj, {
+    contribuyente: 'DEMO', fuenteListado: 'caso', trazabilidad: {
+      fechaHora: '18/10/2026 10:00', modo: 'DEMO', version: R69.VERSION, receptor: 'DEMO010101AAA', huella: 'abc123',
+      calendario: ['20/07/2026 a 31/07/2026: vacaciones'], isr: 'Sin estimación de ISR',
+      ajustes: rAj.operaciones.filter(o => o.ajustado), registro: [['Con error', 'x.xml', 'UUID inválido']]
+    }
+  });
+  const { archivos: partes, omitidos } = await R69.zip.extraerXML(libro, 'entregables.xlsx');
+  // Solo se omiten los .rels (no son .xml); ninguna parte falla la verificación CRC-32
+  ok(omitidos.length > 0 && omitidos.every(o => /\.rels$/.test(o.nombre)), 'el ZIP del Excel pasa la verificación CRC-32: ' + JSON.stringify(omitidos));
+  const texto = n => new TextDecoder().decode(partes.find(p => p.nombre === n).bytes);
+  ok(/sheet name="Trazabilidad"/.test(texto('xl/workbook.xml')), 'hoja Trazabilidad');
+  const t4 = texto('xl/worksheets/sheet4.xml');
+  ['versión ' + R69.VERSION, 'abc123', 'DEMO010101AAA', ajustada.uuid, 'UUID inválido', '20/07/2026'].forEach(x => ok(t4.includes(x), 'Trazabilidad incluye ' + x));
+  console.log(`OK — ${pruebas} comprobaciones del lector de CFDI y del Excel pasaron.`);
+})().catch(e => { console.error(e); process.exit(1); });

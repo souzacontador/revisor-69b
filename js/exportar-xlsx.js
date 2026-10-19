@@ -1,7 +1,7 @@
 /* Entregables en Excel (.xlsx) generados en el navegador, sin librerías.
  * Un .xlsx es un ZIP con XML (Office Open XML). Aquí se escribe el ZIP sin compresión
  * (método 0) y las hojas con cadenas en línea; Excel recalcula las fórmulas al abrir.
- * Hojas: «Tabla por operación», «Resumen por proveedor» y «Notas». */
+ * Hojas: «Tabla por operación», «Resumen por proveedor», «Notas» y «Trazabilidad». */
 (function (root) {
   'use strict';
   const R69 = root.R69 = root.R69 || {};
@@ -226,10 +226,43 @@
       ['DSouza Consultores Fiscales · C.P. Daniel Souza Vázquez · daniel@dsouzaconsultores.mx']
     ].map(([t, s]) => [txt(t, s == null ? S.nota : s)]);
 
+    // Hoja 4: trazabilidad (permite reconstruir la revisión: qué se usó, qué se ajustó y qué quedó fuera)
+    const TZ = m.trazabilidad || {};
+    const tz = [[txt('Revisor de Proveedores 69-B · Trazabilidad de la revisión', S.titulo)], [txt('Datos para reconstruir esta revisión y sus fuentes.', S.sub)], null,
+      [txt('Concepto', S.enc), txt('Detalle', S.enc)]];
+    const par = (k, v) => tz.push([txt(k), txt(v == null || v === '' ? '—' : String(v))]);
+    par('Generado el', TZ.fechaHora);
+    par('Programa', `Revisor de Proveedores 69-B, versión ${TZ.version || ''}`);
+    par('Modo', TZ.modo);
+    par('Receptor revisado', TZ.receptor);
+    par('CFDI de otros receptores no incluidos', TZ.excluidos || 'Ninguno');
+    par('Fecha de revisión', U.fechaMX(r.fechaRevision));
+    par('CFDI analizados', r.operaciones.length);
+    par('Listado 69-B: fuente', TZ.fuente);
+    par('Listado 69-B: datos', TZ.fechaDatos);
+    par('Listado 69-B: registros', TZ.registros);
+    par('Listado 69-B: huella SHA-256 del archivo leído', TZ.huella);
+    if (TZ.huellaMeta) par('Huella registrada por la actualización diaria', TZ.huellaMeta + (TZ.huellaMeta === TZ.huella ? ' (coincide)' : ' (NO coincide)'));
+    (TZ.calendario || []).forEach((c, i) => par(i ? '' : 'Días inhábiles adicionales considerados', c));
+    par('Estimación de ISR', TZ.isr);
+    tz.push(null, [txt('Importes ajustados manualmente', S.notaTit)]);
+    const aj = TZ.ajustes || [];
+    if (aj.length) {
+      tz.push(['UUID', 'Proveedor', 'RFC', 'Deducción potencial', 'Deducción considerada', 'IVA del CFDI', 'IVA considerado'].map(t => txt(t, S.enc)));
+      aj.forEach(o => tz.push([txt(o.uuid, S.mono), txt(o.proveedor), txt(o.rfc, S.mono), mon(o.deduccionPotencial), mon(o.deduccion), mon(o.iva), mon(o.ivaComprometido)]));
+    } else tz.push([txt('Ninguno: se usaron los importes de los CFDI.')]);
+    tz.push(null, [txt('Archivos omitidos o con error', S.notaTit)]);
+    const reg = TZ.registro || [];
+    if (reg.length) {
+      tz.push(['Tipo', 'Archivo', 'Motivo'].map(t => txt(t, S.enc)));
+      reg.forEach(([tipo, archivo, motivo]) => tz.push([txt(tipo), txt(archivo), txt(motivo)]));
+    } else tz.push([txt('Ninguno.')]);
+
     const hojas = [
       ['Tabla por operación', hoja(h1, { anchos: [38, 32, 15, 16, 15, 14, 18, 18, 60, 16, 16], congelar: 4, filtro: `A4:K${fu}`, altos: { 4: 32 }, activa: true })],
       ['Resumen por proveedor', hoja(h2, { anchos: [15, 30, 16, 18, 19, 19, 19, 19, 7, 16, 18, 58, 20, 46].concat(conISR ? [16] : []), congelar: 4, filtro: r.proveedores.length ? `A4:${col(enc2.length - 1)}${gu}` : '', altos: { 4: 44 } })],
-      ['Notas', hoja(notas, { anchos: [120] })]
+      ['Notas', hoja(notas, { anchos: [120] })],
+      ['Trazabilidad', hoja(tz, { anchos: [44, 70, 60, 18, 18, 16, 16], altos: {} })]
     ];
     const ct = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${hojas.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`;
