@@ -453,8 +453,9 @@ Empecemos por definir la estructura del revisor y cómo leer el CSV sin romper l
   function fijarListadoReal(listado, fuente, aviso) {
     const st = estado.real;
     st.listado = listado; st.fuente = fuente; st.avisoListado = aviso || '';
-    const descarga = fuente.tipo === 'servidor' && fuente.meta.ultimaDescargaExitosa ? `descarga del ${U.fechaMX(fuente.meta.ultimaDescargaExitosa.slice(0, 10))}` : (fuente.tipo === 'manual' ? `archivo ${fuente.nombre}` : '');
-    st.fechaDatos = [listado.actualizadoAl ? 'datos al ' + listado.actualizadoAl : '', descarga].filter(Boolean).join(' · ');
+    const fLocal = (iso) => { const f = new Date(iso); return isNaN(f) ? '' : `${String(f.getDate()).padStart(2, '0')}/${String(f.getMonth() + 1).padStart(2, '0')}/${f.getFullYear()}`; };
+    const descarga = fuente.tipo === 'servidor' && fuente.meta.ultimaDescargaExitosa ? `descarga del ${fLocal(fuente.meta.ultimaDescargaExitosa)}` : (fuente.tipo === 'manual' ? `archivo ${fuente.nombre}` : '');
+    st.fechaDatos = [listado.actualizadoAl || '', descarga].filter(Boolean).join(' · ');
     pintarEstadoListado();
     actualizarBotonReal();
   }

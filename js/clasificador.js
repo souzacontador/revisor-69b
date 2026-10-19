@@ -72,7 +72,7 @@
     if (!episodios || !episodios.length) {
       return {
         listado: false, situacion: 'No listado', veredicto: VEREDICTOS.SIN_RIESGO,
-        motivo: `RFC no encontrado en el listado consultado${fechaDatos ? ' (datos al ' + fechaDatos + ')' : ''}.`
+        motivo: `RFC no encontrado en el listado consultado${fechaDatos ? ' (' + (/^\d/.test(fechaDatos) ? 'datos al ' : '') + fechaDatos + ')' : ''}.`
       };
     }
     const situaciones = [...new Set(episodios.map(e => e.situacion || 'Desconocida'))];
