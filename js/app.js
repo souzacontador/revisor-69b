@@ -465,9 +465,7 @@ Empecemos por definir la estructura del revisor y cómo leer el CSV sin romper l
         <li><strong>Plazo</strong> (<code>js/dias-habiles.js</code>): 30 días hábiles a partir del día siguiente a la publicación del definitivo en el DOF, sin sábados, domingos ni inhábiles del art. 12 CFF (lunes móviles de febrero, marzo y noviembre; 1 y 5 de mayo; 16 de septiembre; 25 de diciembre; 1 de diciembre sexenal) ni los días que declare la RMF (regla 2.1.6).</li>
         <li><strong>Modo REAL</strong>: una GitHub Action descarga el listado oficial cada día, lo valida y conserva la última versión válida; los CFDI (XML o ZIP) se leen solo en el navegador.</li>
       </ol>
-      <p class="pequeno secundario">Fuentes de verificación: texto del CFF 2026 (arts. 12 y 69-B) y de la RMF 2026 (regla 2.1.6); Anexo 20 (cuaderno «CFDI 4.0»); manuales de materialidad (cuaderno «Curso Fiscalización 2026 DSV»). Los resultados del caso se verificaron con pruebas automáticas (<code>tests/</code>).</p>
-      <h3>Qué costó más trabajo</h3>
-      <p class="texto">Leer el CSV sin romper caracteres y sin depender de un número fijo de renglones de título: se resolvió decodificando como Windows-1252 y buscando el encabezado por nombre de columna. Lo segundo fue el plazo: contarlo en días hábiles con los lunes móviles del art. 12 y verificarlo contra un conteo independiente (22/01/2026 → 06/03/2026; 04/09/2026 → 19/10/2026, que omite el 16 de septiembre). Y resistir las dos tentaciones del caso: el RFC con un espacio al final se normaliza para que sí cruce, y «Logística Integral Cumbres» no se confunde con «Logística Integral Cumbres del Norte» porque el cruce es solo por RFC.</p>`;
+      <p class="pequeno secundario">Fuentes de verificación: texto del CFF 2026 (arts. 12 y 69-B) y de la RMF 2026 (regla 2.1.6); Anexo 20 (cuaderno «CFDI 4.0»); manuales de materialidad (cuaderno «Curso Fiscalización 2026 DSV»). Los resultados del caso se verificaron con pruebas automáticas (<code>tests/</code>).</p>`;
   }
 
   // ====================== MODO REAL ======================
