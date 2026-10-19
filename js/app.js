@@ -94,6 +94,8 @@
   }
   function etiquetaVeredicto(v) { return `<span class="etiqueta-sit nivel-${v.nivel}">${h(v.corto || v.texto)}</span>`; }
 
+  const NOTA_IVA = 'El IVA comprometido parte del IVA trasladado que desglosa cada CFDI (a la tasa que aplicó el emisor). Es una base inicial: concílialo con el IVA que efectivamente acreditaste en tus declaraciones y, si difiere, ajústalo en la tabla por operación.';
+
   function renderKPIs() {
     const r = st().resultado, t = r.totales;
     const tarjeta = (clave, titulo, nivel, sinRiesgo) => {
@@ -118,7 +120,9 @@
         <span>Fecha de revisión: <b>${U.fechaMX(r.fechaRevision)}</b></span>
         <span>Listado consultado: <b>${h(r.fechaDatos || 'sin fecha')}</b></span>
       </div>
-      <div class="rejilla rejilla--${tarjetas.length === 4 ? '4' : '3'}" style="margin-top:16px">${tarjetas.join('')}</div>`;
+      ${(r.avisosListado || []).map(a => `<div class="aviso aviso--alto" style="margin-top:12px">${ico('i-alerta')}<p>${h(a)}</p></div>`).join('')}
+      <div class="rejilla rejilla--${tarjetas.length === 4 ? '4' : '3'}" style="margin-top:16px">${tarjetas.join('')}</div>
+      <p class="pequeno secundario" style="margin-top:12px">${h(NOTA_IVA)}</p>`;
   }
 
   function filasOperaciones() {
@@ -158,10 +162,10 @@
       const aj = s.ajustes[o.uuid] || {};
       const editable = o.veredicto.clave !== 'SIN_RIESGO';
       const importes = editable ? `<div class="ajuste">
-          <label for="aj-d-${o.uuid}">Deducido (ISR)</label>
-          <input type="number" inputmode="decimal" step="0.01" min="0" id="aj-d-${o.uuid}" data-uuid="${o.uuid}" data-campo="deduccion" value="${aj.deduccion != null ? aj.deduccion : o.deduccionPotencial.toFixed(2)}">
-          <label for="aj-i-${o.uuid}">IVA acreditado</label>
-          <input type="number" inputmode="decimal" step="0.01" min="0" id="aj-i-${o.uuid}" data-uuid="${o.uuid}" data-campo="iva" value="${aj.iva != null ? aj.iva : o.iva.toFixed(2)}">
+          <label for="aj-d-${h(o.uuid)}">Deducido (ISR)</label>
+          <input type="number" inputmode="decimal" step="0.01" min="0" id="aj-d-${h(o.uuid)}" data-uuid="${h(o.uuid)}" data-campo="deduccion" value="${aj.deduccion != null ? aj.deduccion : o.deduccionPotencial.toFixed(2)}">
+          <label for="aj-i-${h(o.uuid)}">IVA acreditado</label>
+          <input type="number" inputmode="decimal" step="0.01" min="0" id="aj-i-${h(o.uuid)}" data-uuid="${h(o.uuid)}" data-campo="iva" value="${aj.iva != null ? aj.iva : o.iva.toFixed(2)}">
         </div>` : '<span class="secundario">—</span>';
       return `<tr class="fila-${o.veredicto.nivel}">
         <td data-label="UUID" class="mono">${h(o.uuid)}</td>
@@ -221,7 +225,7 @@
       <li>Publicación del definitivo: SAT ${pl.fechaSAT ? U.fechaMX(pl.fechaSAT) : 'sin fecha'} · DOF ${U.fechaMX(pl.fechaDOF)}. <strong>Fecha usada para el plazo: DOF.</strong></li>
       <li>Se cuentan 30 días hábiles a partir del ${U.fechaLarga(pl.inicioCuenta)}, sin sábados, domingos ni inhábiles del art. 12 CFF.</li>
       <li>Inhábiles entre semana omitidos: ${omit}.</li>
-      <li>${pl.estado === 'VIGENTE' ? `Al ${U.fechaMX(fechaRevision)} quedan <strong>${pl.restantes} días hábiles</strong>.` : `Al ${U.fechaMX(fechaRevision)} el plazo ya <strong>venció</strong>.`}</li>
+      <li>${pl.estado === 'VIGENTE' ? `Al ${U.fechaMX(fechaRevision)} quedan <strong>${pl.restantes} días hábiles</strong>.` : pl.estado === 'NO_INICIADO' ? `Al ${U.fechaMX(fechaRevision)} el plazo <strong>aún no inicia</strong>: la fecha de revisión es anterior a la publicación en el DOF. La situación del proveedor es la del listado consultado; una fecha pasada no reconstruye su situación en ese momento.` : `Al ${U.fechaMX(fechaRevision)} el plazo ya <strong>venció</strong>.`}</li>
       <li class="secundario">Además del art. 12, solo se consideran los días inhábiles capturados en la app (vacaciones generales y días que declara la RMF: ${h(diasAdicionalesTexto())}). Si el plazo cruza un periodo de vacaciones del SAT aún no capturado, la fecha real sería posterior: la fecha mostrada es conservadora.</li>
     </ul>`;
   }
@@ -286,7 +290,7 @@
     const receptor = c ? [c.receptorNombre, c.receptorRFC].filter(Boolean).join(' · ') : 'Contribuyente';
     const fuente = !s.fuente ? '' : s.fuente.tipo === 'caso' ? 'listado del caso de práctica (datos ficticios)'
       : s.fuente.tipo === 'servidor' ? 'copia diaria del portal de datos abiertos del SAT' : 'archivo cargado manualmente: ' + s.fuente.nombre;
-    return { contribuyente: receptor + (modo === 'demo' ? ' (modo DEMO)' : ''), fuenteListado: fuente };
+    return { contribuyente: receptor + (modo === 'demo' ? ' (modo DEMO)' : ''), fuenteListado: fuente, avisosListado: (s.resultado && s.resultado.avisosListado) || [], notaIVA: NOTA_IVA };
   }
 
   function renderExportar() {
@@ -335,10 +339,32 @@
     return { tasaISR: null, regimenISR: '' };
   }
 
+  /** Advertencias sobre el listado que deben acompañar los resultados y los entregables. */
+  function avisosListado(s) {
+    const avisos = [];
+    if (!s.listado || !s.fuente) return avisos;
+    const n = s.listado.registros.length;
+    const dias = iso => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    if (s.fuente.tipo === 'manual' && n < 5000) {
+      avisos.push(`El listado cargado tiene solo ${n.toLocaleString('es-MX')} registros: es un archivo parcial. «No listado» significa que el RFC no está en ese archivo, no que esté ausente del listado completo del SAT.`);
+    }
+    if (s.fuente.tipo === 'servidor' && s.fuente.meta && s.fuente.meta.ultimaDescargaExitosa) {
+      const d = dias(s.fuente.meta.ultimaDescargaExitosa);
+      if (d > 7) avisos.push(`La copia guardada del listado se descargó hace ${d} días: la actualización diaria pudo fallar. Confirma la situación de los proveedores en el portal del SAT.`);
+    }
+    if (s.fuente.tipo === 'manual' && s.fuente.fechaArchivo) {
+      const d = dias(s.fuente.fechaArchivo);
+      if (d > 30) avisos.push(`El archivo del listado tiene fecha de hace ${d} días en tu equipo: puede no reflejar las publicaciones más recientes.`);
+    }
+    return avisos;
+  }
+
   /** Ejecuta la revisión. Con tablaCompleta=false no vuelve a pintar la tabla (para no perder el foco al ajustar importes). */
   function recalcular(tablaCompleta) {
     const s = st();
-    s.resultado = C.revisar(s.cfdis, s.listado, Object.assign({ fechaRevision: s.fechaRevision, fechaDatos: s.fechaDatos, ajustes: s.ajustes }, opcionesISR(s)));
+    const parcial = s.fuente && s.fuente.tipo === 'manual' && s.listado.registros.length < 5000 ? s.listado.registros.length : null;
+    s.resultado = C.revisar(s.cfdis, s.listado, Object.assign({ fechaRevision: s.fechaRevision, fechaDatos: s.fechaDatos, ajustes: s.ajustes, registrosListadoParcial: parcial }, opcionesISR(s)));
+    s.resultado.avisosListado = avisosListado(s);
     renderKPIs(); renderImpacto(); renderAcciones(); renderResumenTabla();
     if (tablaCompleta !== false) { renderOperaciones(); renderExportar(); }
   }
@@ -463,20 +489,31 @@
       return;
     }
     $('#cfdi-resumen').innerHTML = `<p class="cargando">Procesando ${archivos.length} archivo(s)…</p>`;
+    const generacion = s.generacion || 0;
+    const vigente = () => (s.generacion || 0) === generacion;  // false si se inició un nuevo análisis durante la carga
     const antes = s.cfdis.length;
     for (const a of archivos) {
-      const nombre = a.webkitRelativePath || a.rutaCarpeta || a.name, bytes = new Uint8Array(await a.arrayBuffer());
+      const nombre = a.webkitRelativePath || a.rutaCarpeta || a.name;
       try {
+        const bytes = new Uint8Array(await a.arrayBuffer());
+        if (!vigente()) return;
         if (/\.zip$/i.test(nombre)) {
           const z = await R69.zip.extraerXML(bytes, nombre);
+          if (!vigente()) return;
           z.omitidos.forEach(o => s.registro.omitidos.push({ archivo: nombre + ' › ' + o.nombre, motivo: o.motivo }));
           z.archivos.forEach(x => agregarTexto(s, textoXML(x.bytes), nombre + ' › ' + x.nombre));
         } else if (/\.xml$/i.test(nombre)) agregarTexto(s, textoXML(bytes), nombre);
         else s.registro.omitidos.push({ archivo: nombre, motivo: 'No es un archivo XML ni ZIP.' });
-      } catch (e) { s.registro.errores.push({ archivo: nombre, motivo: e.message }); }
+      } catch (e) {
+        if (!vigente()) return;
+        s.registro.errores.push({ archivo: nombre, motivo: e.message || 'No se pudo leer el archivo.' });
+      }
     }
+    if (!vigente()) return;
     s.ultimaCarga = s.cfdis.length - antes;
-    s.resultado = null; $('#resultados').hidden = true;
+    s.resultado = null;
+    if (st() !== s) return;  // se cambió de modo durante la carga: se verá al volver
+    $('#resultados').hidden = true;
     pintarResumenCFDI();
     actualizarBoton();
   }
@@ -502,6 +539,7 @@
   }
 
   function limpiarCFDI(s) {
+    s.generacion = (s.generacion || 0) + 1;  // las cargas que sigan en curso dejan de aplicar
     s.cfdis = []; s.porUUID = new Map(); s.registro = { omitidos: [], errores: [] }; s.ajustes = {}; s.ultimaCarga = null; s.ignoradosCarpeta = null; s.resultado = null;
   }
 
@@ -523,7 +561,7 @@
     const lista = (titulo, items) => items.length ? `<details class="detalle"><summary>${h(titulo)} (${items.length})</summary><ul class="registro-carga">${items.slice(0, 500).map(x => `<li><span class="mono">${h(x.archivo)}</span>: ${h(x.motivo)}</li>`).join('')}</ul></details>` : '';
     cont.innerHTML = `
       <ul class="carga-resumen">
-        <li><span class="etiqueta-sit nivel-bajo">${s.cfdis.length} CFDI válidos</span></li>
+        <li><span class="etiqueta-sit nivel-bajo">${s.cfdis.length} CFDI leídos</span></li>
         <li><span class="etiqueta-sit nivel-medio">${reg.omitidos.length} omitidos</span></li>
         <li><span class="etiqueta-sit nivel-alto">${reg.errores.length} con error</span></li>
       </ul>

@@ -15,7 +15,8 @@
   /** Días inhábiles adicionales publicados por la autoridad. Fuente indicada en cada entrada. */
   const DIAS_ADICIONALES = [
     { desde: '2025-12-18', hasta: '2026-01-02', motivo: 'Segundo periodo general de vacaciones 2025 del SAT (RMF 2026, regla 2.1.6, fr. I)', tipo: 'vacaciones' },
-    { desde: '2026-04-02', hasta: '2026-04-03', motivo: 'Días inhábiles para el SAT (RMF 2026, regla 2.1.6, fr. II)', tipo: 'rmf' }
+    { desde: '2026-04-02', hasta: '2026-04-03', motivo: 'Días inhábiles para el SAT (RMF 2026, regla 2.1.6, fr. II)', tipo: 'rmf' },
+    { desde: '2026-07-20', hasta: '2026-07-31', motivo: 'Primer periodo general de vacaciones 2026 del SAT (1a. RM a la RMF 2026, DOF 09/07/2026, regla 2.1.6, fr. III)', tipo: 'vacaciones' }
   ];
 
   function enesimoLunes(anio, mes, n) {

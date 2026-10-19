@@ -1,0 +1,35 @@
+# Ejecuta las pruebas en cada cambio del código (no en las actualizaciones diarias del listado).
+name: Pruebas
+
+on:
+  push:
+    paths-ignore:
+      - 'data/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: 'true'
+      LISTADO_69B_REAL: data/69b/Listado_completo_69-B.csv
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar dependencias de prueba
+        run: npm ci --no-audit --no-fund
+      - name: Clasificador, días hábiles y CSV
+        run: node tests/test-clasificador.js
+      - name: Lector de CFDI
+        run: node tests/test-lector-cfdi.js
+      - name: Lector de ZIP
+        run: node tests/test-lector-zip.js
+      - name: Actualizador del listado 69-B
+        run: node tests/test-actualizar-69b.js

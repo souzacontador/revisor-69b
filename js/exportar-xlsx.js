@@ -190,7 +190,7 @@
       if (conFecha) {
         const omit = pl.inhabilesOmitidos.map(x => `${U.fechaMX(x.fecha)} (${x.motivo})`).join('; ') || 'ninguno';
         computo = `30 días hábiles desde la publicación en el DOF (${U.fechaMX(pl.fechaDOF)}); cuenta desde ${U.fechaMX(pl.inicioCuenta)}. Inhábiles entre semana omitidos: ${omit}. ` +
-          (pl.estado === 'VENCIDO' ? `Vencido al ${U.fechaMX(r.fechaRevision)}.` : `Vigente: quedan ${pl.restantes} días hábiles al ${U.fechaMX(r.fechaRevision)}.`);
+          (pl.estado === 'VENCIDO' ? `Vencido al ${U.fechaMX(r.fechaRevision)}.` : pl.estado === 'NO_INICIADO' ? `Aún no inicia al ${U.fechaMX(r.fechaRevision)} (fecha de revisión anterior a la publicación en el DOF).` : `Vigente: quedan ${pl.restantes} días hábiles al ${U.fechaMX(r.fechaRevision)}.`);
       } else computo = p.situacion === 'Presunto' ? 'El plazo de 30 días solo corre tras la publicación como definitivo.' : (p.situacion === 'Definitivo' ? p.fechaLimite : 'No aplica el plazo de 30 días del art. 69-B, párr. 8.');
       const fila = [txt(p.rfc, S.mono), txt(p.nombre), txt(p.situacion, NIVEL[nivelSit(p.situacion)]), txt(p.veredicto.corto || p.veredicto.texto, NIVEL[p.veredicto.nivel]),
         txt(pub(p, 'Presunto')), txt(pub(p, 'Desvirtuado')), txt(pub(p, 'Definitivo')), txt(pub(p, 'Sentencia favorable')),
@@ -216,11 +216,12 @@
       ['• Presunto: riesgo potencial; aún no corre el plazo de 30 días para el cliente. Desvirtuado y sentencia favorable: conservan sus efectos.'],
       ['• Varios episodios de un RFC con situaciones distintas: «Requiere revisión documental». Los importes no se duplican.'],
       ['• Plazo (art. 69-B, párr. 8): 30 días hábiles a partir del día siguiente a la publicación del definitivo en el DOF, sin sábados, domingos ni inhábiles del art. 12 CFF, ni los días adicionales capturados (RMF 2026, regla 2.1.6).'],
-      ['• IVA y deducción comprometidos: suma por proveedor de los CFDI sin efecto fiscal, en riesgo o en revisión. La deducción es el monto potencial (SubTotal − Descuento) salvo que se haya ajustado en la app.' + (conISR ? ` La estimación de ISR usa la tasa de ${(r.tasaISR * 100).toFixed(2).replace(/\.00$/, '')} %${r.regimenISR ? ' (' + r.regimenISR + ')' : ''} y es solo referencia.` : '')],
+      ['• IVA y deducción comprometidos: suma por proveedor de los CFDI sin efecto fiscal, en riesgo o en revisión. La deducción es el monto potencial (SubTotal − Descuento) salvo que se haya ajustado en la app.' + (m.notaIVA ? ' ' + m.notaIVA : '') + (conISR ? ` La estimación de ISR usa la tasa de ${(r.tasaISR * 100).toFixed(2).replace(/\.00$/, '')} %${r.regimenISR ? ' (' + r.regimenISR + ')' : ''} y es solo referencia.` : '')],
       [''], ['Fuentes', S.notaTit],
       ['• CFF 2026, arts. 12 y 69-B; RMF 2026, regla 2.1.6; Anexo 20 (CFDI 4.0).'],
       [`• Listado consultado: ${r.fechaDatos || 'sin fecha'}${m.fuenteListado ? ' · ' + m.fuenteListado : ''}.`],
-      [`• Generado con el Revisor de Proveedores 69-B el ${U.fechaMX(U.hoyISO())}.`],
+      ...(m.avisosListado || []).map(a => [`• ADVERTENCIA: ${a}`, S.alto]),
+      [`• Generado con el Revisor de Proveedores 69-B (versión ${R69.VERSION || ''}) el ${U.fechaMX(U.hoyISO())}.`],
       [''], ['Herramienta de apoyo: no sustituye el análisis profesional ni la consulta de las publicaciones oficiales en el DOF y en el portal del SAT.'],
       ['DSouza Consultores Fiscales · C.P. Daniel Souza Vázquez · daniel@dsouzaconsultores.mx']
     ].map(([t, s]) => [txt(t, s == null ? S.nota : s)]);

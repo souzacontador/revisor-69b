@@ -101,6 +101,45 @@ const ra = R69.clasificador.revisar([cf('CCC010101CC3', 'U3', 3000, 480)], sinte
 assert.strictEqual(ra.proveedores[0].deduccion, 1200);
 assert.strictEqual(ra.proveedores[0].ivaComprometido, 0);
 
+// --- Primer periodo de vacaciones 2026 del SAT (regla 2.1.6, fr. III: 20 al 31 de julio) ---
+assert.strictEqual(R69.dias.plazoHabil('2026-07-01', 30).vence, '2026-08-26', 'plazo que cruza las vacaciones de julio');
+assert.strictEqual(R69.dias.motivoInhabil('2026-07-20') !== '', true);
+assert.strictEqual(R69.dias.motivoInhabil('2026-07-31') !== '', true);
+assert.strictEqual(R69.dias.motivoInhabil('2026-08-03'), '', '3 de agosto es hábil');
+// Periodo de vacaciones 2025 (cruce diciembre/enero)
+assert.strictEqual(R69.dias.plazoHabil('2025-12-10', 30).vence, '2026-02-09'); // omite 18/12–02/01 y el 2 de febrero
+
+// --- Plazo no iniciado: fecha de revisión anterior a la publicación en el DOF ---
+const unDef = { registros: [], porRFC: new Map([['DDD010101DD4', [ep(6, 'Definitivo', { fechaSAT: '2026-01-20', fechaDOF: '2026-01-22' })]]]) };
+const plazoAl = f => R69.clasificador.revisar([cf('DDD010101DD4', 'U6', 100, 16)], unDef, { fechaRevision: f }).proveedores[0];
+assert.strictEqual(plazoAl('2026-01-01').plazo.estado, 'NO_INICIADO');
+assert.strictEqual(plazoAl('2026-01-01').plazo.restantes, 30);
+assert.strictEqual(plazoAl('2026-01-01').fechaLimite, '06/03/2026');
+assert.ok(plazoAl('2026-01-01').accion.includes('aún no inicia'));
+assert.strictEqual(plazoAl('2026-01-22').plazo.estado, 'NO_INICIADO', 'el día de la publicación el cómputo aún no empieza');
+assert.strictEqual(plazoAl('2026-01-23').plazo.estado, 'VIGENTE');
+assert.strictEqual(plazoAl('2026-03-06').plazo.estado, 'VIGENTE');
+assert.strictEqual(plazoAl('2026-03-09').plazo.estado, 'VENCIDO');
+
+// --- Listado parcial: «no encontrado» se refiere solo al archivo cargado ---
+const rp = R69.clasificador.revisar([cf('ZZZ010101ZZ9', 'U7', 100, 16)], sintetico, { fechaRevision: '2026-09-30', registrosListadoParcial: 120 });
+assert.ok(rp.operaciones[0].motivo.includes('parcial (120 registros)'));
+
+// --- CSV: desvirtuados y sentencias favorables sin importes comprometidos; textos que parecen fórmula ---
+require('../js/exportar.js');
+const filasCSV = R69.csv.parseCSV(R69.exportar.csvProveedores(r).replace(/^﻿/, ''));
+const encCSV = filasCSV[0], filaDe = rfc => filasCSV.find(f => f[0] === rfc);
+const colIVA = encCSV.indexOf('IVA comprometido'), colDed = encCSV.indexOf('Monto potencialmente comprometido para deducción de ISR');
+for (const rfc of ['PEH160228QX5', 'STN140709BB6']) {
+  assert.strictEqual(filaDe(rfc)[colIVA], '', rfc + ': sin IVA comprometido');
+  assert.strictEqual(filaDe(rfc)[colDed], '', rfc + ': sin deducción comprometida');
+}
+const sumaCSV = col => filasCSV.slice(1).reduce((s, f) => s + Math.round((Number(f[col]) || 0) * 100), 0) / 100;
+assert.strictEqual(sumaCSV(colIVA), 57088.15, 'el CSV de proveedores concilia con la pantalla y el Excel');
+assert.strictEqual(sumaCSV(colDed), 356800.99);
+const csvF = R69.exportar.aCSV(['x'], [['=1+1'], ['+5'], ['-A'], ['@SUMA'], [-5], [12.5], ['Normal']]);
+assert.strictEqual(csvF, "﻿x\r\n'=1+1\r\n'+5\r\n'-A\r\n'@SUMA\r\n-5\r\n12.50\r\nNormal\r\n");
+
 console.log('Totales por veredicto:');
 for (const [k, t] of Object.entries(r.totales)) console.log(' ', k.padEnd(10), String(t.cfdis).padStart(2), 'CFDI · IVA', U.moneda(t.ivaComprometido).padStart(15), '· deducción', U.moneda(t.deduccion).padStart(16));
 console.log('\nProveedores listados:');

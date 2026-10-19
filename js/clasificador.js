@@ -89,22 +89,26 @@
     const sat = ep.definitivo.fechaSAT || '', dof = ep.definitivo.fechaDOF || '';
     if (!dof) return { estado: 'PENDIENTE_DOF', texto: TEXTO_PENDIENTE_DOF, fechaSAT: sat, fechaDOF: '', fechaUsada: '' };
     const { vence, omitidos } = D.plazoHabil(dof, PLAZO_DIAS);
-    const vigente = fechaRevision <= vence;
+    const inicioCuenta = D.sumarDias(dof, 1);
+    // Revisión con fecha anterior al inicio del cómputo: el plazo todavía no corre
+    const estado = fechaRevision < inicioCuenta ? 'NO_INICIADO' : fechaRevision <= vence ? 'VIGENTE' : 'VENCIDO';
     return {
-      estado: vigente ? 'VIGENTE' : 'VENCIDO',
-      fechaSAT: sat, fechaDOF: dof, fechaUsada: 'DOF', inicioCuenta: D.sumarDias(dof, 1), vence,
+      estado,
+      fechaSAT: sat, fechaDOF: dof, fechaUsada: 'DOF', inicioCuenta, vence,
       inhabilesOmitidos: omitidos,
-      restantes: vigente ? D.habilesRestantes(fechaRevision, vence) : 0,
-      texto: vigente ? `Vence el ${U.fechaMX(vence)}` : `Venció el ${U.fechaMX(vence)}`
+      restantes: estado === 'VIGENTE' ? D.habilesRestantes(fechaRevision, vence) : estado === 'NO_INICIADO' ? PLAZO_DIAS : 0,
+      texto: estado === 'VENCIDO' ? `Venció el ${U.fechaMX(vence)}` : estado === 'NO_INICIADO' ? `Aún no inicia; vencerá el ${U.fechaMX(vence)}` : `Vence el ${U.fechaMX(vence)}`
     };
   }
 
   /** Situación del proveedor a partir de sus episodios en el listado. */
-  function evaluarProveedor(rfc, episodios, fechaRevision, fechaDatos) {
+  function evaluarProveedor(rfc, episodios, fechaRevision, fechaDatos, registrosParcial) {
     if (!episodios || !episodios.length) {
       return {
         listado: false, situacion: 'No listado', veredicto: VEREDICTOS.SIN_RIESGO,
-        motivo: `RFC no encontrado en el listado consultado${fechaDatos ? ' (' + (/^\d/.test(fechaDatos) ? 'datos al ' : '') + fechaDatos + ')' : ''}.`
+        motivo: registrosParcial
+          ? `RFC no encontrado en el archivo cargado, que es parcial (${registrosParcial} registros). No equivale a no estar en el listado completo del SAT.`
+          : `RFC no encontrado en el listado consultado${fechaDatos ? ' (' + (/^\d/.test(fechaDatos) ? 'datos al ' : '') + fechaDatos + ')' : ''}.`
       };
     }
     const situaciones = [...new Set(episodios.map(e => e.situacion || 'Desconocida'))];
@@ -134,6 +138,9 @@
       } else if (p.estado === 'PENDIENTE_DOF') {
         fechaLimite = TEXTO_PENDIENTE_DOF;
         accion = 'Verificar la fecha de publicación del definitivo en el DOF para computar el plazo de 30 días hábiles. Mientras tanto, reunir la evidencia de materialidad y preparar las declaraciones complementarias de IVA e ISR.';
+      } else if (p.estado === 'NO_INICIADO') {
+        fechaLimite = U.fechaMX(p.vence);
+        accion = `El plazo de 30 días hábiles aún no inicia a la fecha de revisión: comienza a contar el ${U.fechaLarga(p.inicioCuenta)} y vence el ${U.fechaLarga(p.vence)}. Dentro de ese plazo, acreditar la materialidad ante el SAT o corregir con declaraciones complementarias de IVA e ISR (art. 69-B, párr. 8). La situación del proveedor es la del listado consultado: una fecha de revisión anterior no reconstruye su situación en esa fecha.`;
       } else if (p.estado === 'VIGENTE') {
         fechaLimite = U.fechaMX(p.vence);
         accion = `A más tardar el ${U.fechaLarga(p.vence)}: acreditar ante el SAT que efectivamente se adquirieron los bienes o se recibieron los servicios (materialidad), o corregir la situación fiscal mediante declaraciones complementarias de IVA e ISR (art. 69-B, párr. 8).`;
@@ -172,7 +179,8 @@
   }
 
   /** Ejecuta la revisión completa.
-   *  opciones: { fechaRevision (ISO), fechaDatos (texto), ajustes: {uuid:{deduccion, iva}}, tasaISR (0..1 | null), regimenISR } */
+   *  opciones: { fechaRevision (ISO), fechaDatos (texto), ajustes: {uuid:{deduccion, iva}}, tasaISR (0..1 | null), regimenISR,
+   *             registrosListadoParcial (número de registros si el listado es un archivo parcial) } */
   function revisar(cfdis, listado, opciones) {
     const op = opciones || {};
     const fechaRevision = op.fechaRevision || U.hoyISO();
@@ -182,7 +190,7 @@
     const operaciones = [];
 
     for (const c of cfdis) {
-      if (!cacheProv.has(c.emisorRFC)) cacheProv.set(c.emisorRFC, evaluarProveedor(c.emisorRFC, listado.porRFC.get(c.emisorRFC), fechaRevision, op.fechaDatos));
+      if (!cacheProv.has(c.emisorRFC)) cacheProv.set(c.emisorRFC, evaluarProveedor(c.emisorRFC, listado.porRFC.get(c.emisorRFC), fechaRevision, op.fechaDatos, op.registrosListadoParcial));
       const ev = cacheProv.get(c.emisorRFC);
       let nota = '';
       if (!ev.listado) {

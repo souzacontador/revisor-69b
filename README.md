@@ -62,8 +62,24 @@ Es un sitio estático: basta con servir esta carpeta tal cual (rutas relativas, 
 
 ## Desarrollo y pruebas
 
+La aplicación no tiene dependencias. La única dependencia de desarrollo es `@xmldom/xmldom`, que permite probar en Node el mismo lector de CFDI que usa el navegador. La Action **Pruebas** (`.github/workflows/pruebas.yml`) ejecuta todo en cada cambio del código.
+
+```bash
+npm install
+```
+
+```bash
+npm test
+```
+
+O cada conjunto por separado:
+
 ```bash
 node tests/test-clasificador.js
+```
+
+```bash
+node tests/test-lector-cfdi.js
 ```
 
 ```bash

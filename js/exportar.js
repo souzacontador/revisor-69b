@@ -6,7 +6,10 @@
 
   function celda(v) {
     if (v == null) return '';
-    const t = typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(2)) : String(v);
+    let t = typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(2)) : String(v);
+    // Un texto que empieza con = + - @ (o tabulador/retorno) se abriría como fórmula en la hoja de cálculo:
+    // se antepone un apóstrofo para que se lea como texto. Los números no se tocan.
+    if (typeof v !== 'number' && /^[=+\-@\t\r]/.test(t)) t = "'" + t;
     return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
   }
   function aCSV(encabezados, filas) {
@@ -37,13 +40,14 @@
       'Presunto SAT', 'Presunto DOF', 'Desvirtuado SAT', 'Desvirtuado DOF', 'Definitivo SAT', 'Definitivo DOF', 'Sentencia favorable SAT', 'Sentencia favorable DOF',
       'CFDI', 'Primera factura', 'Última factura', 'IVA comprometido', 'Monto potencialmente comprometido para deducción de ISR', 'Estimación de ISR',
       'Acción recomendada', 'Fecha límite', 'Fecha usada para el plazo', 'Inhábiles omitidos en el plazo'];
-    const filas = r.proveedores.map(p => [p.rfc, p.nombre, p.nombreListado, p.situacion, p.veredicto.texto, p.episodios.length,
+    const filas = r.proveedores.map(p => { const comp = p.veredicto.clave !== 'SIN_RIESGO'; return [p.rfc, p.nombre, p.nombreListado, p.situacion, p.veredicto.texto, p.episodios.length,
       fechaEtapa(p, 'Presunto', 'fechaSAT'), fechaEtapa(p, 'Presunto', 'fechaDOF'), fechaEtapa(p, 'Desvirtuado', 'fechaSAT'), fechaEtapa(p, 'Desvirtuado', 'fechaDOF'),
       fechaEtapa(p, 'Definitivo', 'fechaSAT'), fechaEtapa(p, 'Definitivo', 'fechaDOF'), fechaEtapa(p, 'Sentencia favorable', 'fechaSAT'), fechaEtapa(p, 'Sentencia favorable', 'fechaDOF'),
-      p.cfdis, U.fechaMX(p.primeraFactura), U.fechaMX(p.ultimaFactura), p.ivaComprometido, p.deduccion, p.isrEstimado,
+      // Desvirtuados y sentencias favorables conservan sus efectos: sin importes comprometidos (mismo criterio que la pantalla y el Excel)
+      p.cfdis, U.fechaMX(p.primeraFactura), U.fechaMX(p.ultimaFactura), comp ? p.ivaComprometido : '', comp ? p.deduccion : '', comp ? p.isrEstimado : '',
       p.accion, p.fechaLimite,
       p.plazo && p.plazo.fechaUsada ? `Publicación en el DOF del ${U.fechaMX(p.plazo.fechaDOF)}` : '',
-      p.plazo && p.plazo.inhabilesOmitidos ? p.plazo.inhabilesOmitidos.map(x => `${U.fechaMX(x.fecha)} (${x.motivo})`).join(' | ') : '']);
+      p.plazo && p.plazo.inhabilesOmitidos ? p.plazo.inhabilesOmitidos.map(x => `${U.fechaMX(x.fecha)} (${x.motivo})`).join(' | ') : '']; });
     return aCSV(enc, filas);
   }
 

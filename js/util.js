@@ -69,6 +69,7 @@
     return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  R69.VERSION = '1.2.5';
   R69.util = { normalizarRFC, esRFCValido, fechaAISO, isoDeUTC, utcDeISO, hoyISO, fechaMX, fechaLarga, centavos, deCentavos, moneda, claveTexto, escaparHTML };
   if (typeof module !== 'undefined' && module.exports) module.exports = R69;
 })(typeof window !== 'undefined' ? window : globalThis);
