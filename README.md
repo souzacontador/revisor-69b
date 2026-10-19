@@ -76,6 +76,8 @@ node tools/generar-demo-data.js
 
 El último comando regenera `js/demo-data.js` si cambian los archivos de `demo/`.
 
+**Al publicar cambios** en CSS o JS, sube el número de versión `?v=…` de los `<link>` y `<script>` en `index.html` (por ejemplo `1.0.1` → `1.0.2`). GitHub Pages deja que el navegador guarde esos archivos hasta 10 minutos y así se fuerza a descargar la versión nueva.
+
 | Archivo | Función |
 |---|---|
 | `js/util.js` | Normalización de RFC, fechas y formato de moneda |
