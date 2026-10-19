@@ -7,8 +7,8 @@
   <meta name="description" content="Cruza CFDI de gastos contra el listado del artículo 69-B del CFF por RFC, clasifica cada operación, calcula el IVA y la deducción comprometidos y el plazo de 30 días hábiles.">
   <meta name="theme-color" content="#0A2540">
   <link rel="icon" href="assets/img/isotipo.png">
-  <link rel="stylesheet" href="css/marca.css?v=1.2.0">
-  <link rel="stylesheet" href="css/app.css?v=1.2.0">
+  <link rel="stylesheet" href="css/marca.css?v=1.2.1">
+  <link rel="stylesheet" href="css/app.css?v=1.2.1">
 </head>
 <body>
   <a class="saltar" href="#principal">Saltar al contenido</a>
@@ -24,6 +24,7 @@
     <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 4v16l13-8z"/></symbol>
     <symbol id="i-recargar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
     <symbol id="i-archivo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
+    <symbol id="i-carpeta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></symbol>
     <symbol id="i-enlace" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
   </svg>
 
@@ -83,10 +84,15 @@
         <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">2</span><h2 id="t-cfdi">CFDI del cliente</h2></div>
         <label class="zona-carga no-imprimir" id="zona-carga" for="cfdi-input">
           <svg aria-hidden="true"><use href="#i-subir"/></svg>
-          <strong>Arrastra aquí tus XML o ZIP</strong>
-          <span>o toca para seleccionarlos. Puedes cargar varios a la vez; los duplicados se detectan por UUID.</span>
+          <strong>Arrastra aquí tus XML, ZIP o una carpeta</strong>
+          <span>o toca para seleccionar archivos. Puedes cargar varios a la vez; los duplicados se detectan por UUID.</span>
         </label>
         <input type="file" id="cfdi-input" accept=".xml,.zip,text/xml,application/xml,application/zip" multiple class="oculto-visual">
+        <div class="acciones-fila no-imprimir" id="carga-carpeta" style="margin-top:12px">
+          <label class="btn btn--secundario" for="carpeta-input"><svg><use href="#i-carpeta"/></svg>Seleccionar carpeta</label>
+          <input type="file" id="carpeta-input" webkitdirectory directory multiple class="oculto-visual">
+          <span class="secundario pequeno">Toma todos los XML y ZIP de la carpeta y sus subcarpetas; los demás archivos se ignoran.</span>
+        </div>
         <div id="cfdi-resumen" aria-live="polite"></div>
       </section>
 
@@ -133,15 +139,15 @@
     </div>
   </footer>
 
-  <script src="js/util.js?v=1.2.0"></script>
-  <script src="js/dias-habiles.js?v=1.2.0"></script>
-  <script src="js/lector-csv.js?v=1.2.0"></script>
-  <script src="js/lector-cfdi.js?v=1.2.0"></script>
-  <script src="js/lector-zip.js?v=1.2.0"></script>
-  <script src="js/clasificador.js?v=1.2.0"></script>
-  <script src="js/exportar.js?v=1.2.0"></script>
-  <script src="js/exportar-xlsx.js?v=1.2.0"></script>
-  <script src="js/demo-data.js?v=1.2.0"></script>
-  <script src="js/app.js?v=1.2.0"></script>
+  <script src="js/util.js?v=1.2.1"></script>
+  <script src="js/dias-habiles.js?v=1.2.1"></script>
+  <script src="js/lector-csv.js?v=1.2.1"></script>
+  <script src="js/lector-cfdi.js?v=1.2.1"></script>
+  <script src="js/lector-zip.js?v=1.2.1"></script>
+  <script src="js/clasificador.js?v=1.2.1"></script>
+  <script src="js/exportar.js?v=1.2.1"></script>
+  <script src="js/exportar-xlsx.js?v=1.2.1"></script>
+  <script src="js/demo-data.js?v=1.2.1"></script>
+  <script src="js/app.js?v=1.2.1"></script>
 </body>
 </html>

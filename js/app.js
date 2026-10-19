@@ -442,13 +442,25 @@
     s.porUUID.set(c.uuid, c); s.cfdis.push(c);
   }
 
-  async function procesarArchivos(lista) {
-    const s = st(), archivos = Array.from(lista || []);
-    if (!archivos.length) return;
+  /** Procesa archivos sueltos o los de una carpeta. Con deCarpeta, lo que no es XML ni ZIP se ignora y solo se cuenta. */
+  async function procesarArchivos(lista, deCarpeta) {
+    const s = st();
+    let archivos = Array.from(lista || []);
+    let ignorados = 0;
+    if (deCarpeta) {
+      const utiles = archivos.filter(a => /\.(xml|zip)$/i.test(a.name));
+      ignorados = archivos.length - utiles.length;
+      archivos = utiles;
+    }
+    s.ignoradosCarpeta = deCarpeta ? ignorados : null;
+    if (!archivos.length) {
+      if (deCarpeta) { pintarResumenCFDI(); $('#cfdi-resumen').insertAdjacentHTML('afterbegin', `<div class="aviso aviso--medio">${ico('i-alerta')}<p>La carpeta no contiene archivos XML ni ZIP${ignorados ? ` (${ignorados === 1 ? 'se ignoró 1 archivo' : `se ignoraron ${ignorados} archivos`} de otro tipo)` : ''}.</p></div>`); }
+      return;
+    }
     $('#cfdi-resumen').innerHTML = `<p class="cargando">Procesando ${archivos.length} archivo(s)…</p>`;
     const antes = s.cfdis.length;
     for (const a of archivos) {
-      const nombre = a.name, bytes = new Uint8Array(await a.arrayBuffer());
+      const nombre = a.webkitRelativePath || a.rutaCarpeta || a.name, bytes = new Uint8Array(await a.arrayBuffer());
       try {
         if (/\.zip$/i.test(nombre)) {
           const z = await R69.zip.extraerXML(bytes, nombre);
@@ -464,8 +476,28 @@
     actualizarBoton();
   }
 
+  /** Lee los archivos de lo que se arrastró, entrando en carpetas y subcarpetas (API de entradas del navegador). */
+  async function archivosArrastrados(dt) {
+    const items = Array.from(dt.items || []).filter(i => i.kind === 'file');
+    const entradas = items.map(i => i.webkitGetAsEntry ? i.webkitGetAsEntry() : null);
+    if (!entradas.some(e => e && e.isDirectory)) return { archivos: Array.from(dt.files || []), carpeta: false };
+    const archivos = [];
+    const leerArchivo = (entrada) => new Promise((ok, mal) => entrada.file(f => { f.rutaCarpeta = entrada.fullPath.replace(/^\//, ''); ok(f); }, mal));
+    const leerLote = (lector) => new Promise((ok, mal) => lector.readEntries(ok, mal));
+    async function recorrer(entrada) {
+      if (!entrada) return;
+      if (entrada.isFile) { archivos.push(await leerArchivo(entrada)); return; }
+      const lector = entrada.createReader();
+      for (let lote = await leerLote(lector); lote.length; lote = await leerLote(lector)) {
+        for (const e of lote) await recorrer(e);
+      }
+    }
+    for (const e of entradas) await recorrer(e);
+    return { archivos, carpeta: true };
+  }
+
   function limpiarCFDI(s) {
-    s.cfdis = []; s.porUUID = new Map(); s.registro = { omitidos: [], errores: [] }; s.ajustes = {}; s.ultimaCarga = null; s.resultado = null;
+    s.cfdis = []; s.porUUID = new Map(); s.registro = { omitidos: [], errores: [] }; s.ajustes = {}; s.ultimaCarga = null; s.ignoradosCarpeta = null; s.resultado = null;
   }
 
   /** Carga los 40 CFDI del caso de práctica en el estado DEMO. */
@@ -487,7 +519,7 @@
         <li><span class="etiqueta-sit nivel-medio">${reg.omitidos.length} omitidos</span></li>
         <li><span class="etiqueta-sit nivel-alto">${reg.errores.length} con error</span></li>
       </ul>
-      ${s.ultimaCarga != null ? `<p class="pequeno secundario">Última carga: ${s.ultimaCarga} comprobante(s) nuevo(s).</p>` : ''}
+      ${s.ultimaCarga != null ? `<p class="pequeno secundario">Última carga: ${s.ultimaCarga} comprobante(s) nuevo(s)${s.ignoradosCarpeta ? `; ${s.ignoradosCarpeta === 1 ? 'se ignoró 1 archivo de la carpeta que no es' : `se ignoraron ${s.ignoradosCarpeta} archivos de la carpeta que no son`} XML ni ZIP` : ''}.</p>` : ''}
       ${receptores.length > 1 ? `<div class="aviso aviso--medio">${ico('i-alerta')}<p>Los CFDI corresponden a ${receptores.length} receptores distintos (${receptores.map(h).join(', ')}). Verifica que sean del mismo cliente.</p></div>` : receptores.length ? `<p class="pequeno">Receptor: <span class="mono">${h(receptores[0])}</span></p>` : ''}
       ${reg.omitidos.some(o => /^Tipo E\b/.test(o.motivo)) ? `<div class="aviso aviso--medio">${ico('i-alerta')}<p>Se omitieron CFDI de Egreso (notas de crédito). Si alguno corresponde a un proveedor listado, el IVA y la deducción comprometidos pueden estar sobrestimados: ajústalos en la tabla por operación.</p></div>` : ''}
       ${lista('Comprobantes omitidos', reg.omitidos)}${lista('Archivos con error', reg.errores)}`;
@@ -516,7 +548,13 @@
     input.addEventListener('change', e => { procesarArchivos(e.target.files); e.target.value = ''; });
     ['dragenter', 'dragover'].forEach(t => zona.addEventListener(t, e => { e.preventDefault(); zona.classList.add('arrastrando'); }));
     ['dragleave', 'drop'].forEach(t => zona.addEventListener(t, e => { e.preventDefault(); zona.classList.remove('arrastrando'); }));
-    zona.addEventListener('drop', e => procesarArchivos(e.dataTransfer.files));
+    zona.addEventListener('drop', async e => {
+      try { const r = await archivosArrastrados(e.dataTransfer); procesarArchivos(r.archivos, r.carpeta); }
+      catch (err) { procesarArchivos(e.dataTransfer.files); }
+    });
+    const carpeta = $('#carpeta-input');
+    if (!('webkitdirectory' in carpeta)) $('#carga-carpeta').hidden = true;  // el navegador no permite elegir carpetas
+    carpeta.addEventListener('change', e => { procesarArchivos(e.target.files, true); e.target.value = ''; });
     zona.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
     zona.tabIndex = 0;
 

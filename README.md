@@ -13,6 +13,8 @@ Los dos modos usan la misma pantalla y el mismo flujo: **1 Listado del 69-B · 2
 | **DEMO** | Listado del caso de práctica (`demo/`, datos ficticios), precargado | Los 40 CFDI del caso vienen precargados y se pueden limpiar, restaurar o complementar; la fecha inicia en 30/09/2026 y es editable |
 | **REAL** | Listado vigente del SAT: copia diaria guardada en el sitio o CSV cargado a mano | Los carga el usuario (XML o ZIP); la fecha inicia en el día de hoy |
 
+Los CFDI se cargan como archivos XML sueltos, archivos ZIP o una **carpeta completa** (botón «Seleccionar carpeta» o arrastrándola), incluidas sus subcarpetas; en una carpeta, lo que no sea XML ni ZIP se ignora.
+
 Los CFDI se leen **solo en el navegador**; no se envían a ningún servidor. Cada modo conserva su propio estado al cambiar entre ellos.
 
 ## Criterios aplicados
