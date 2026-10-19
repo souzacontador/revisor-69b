@@ -111,6 +111,9 @@ main { padding: 32px 0 48px; }
 .btn--primario:hover { background: var(--cian-300); color: var(--azul-900); }
 .btn--secundario { background: var(--superficie); color: var(--azul-800); border-color: var(--hairline-fuerte); }
 .btn--secundario:hover { border-color: var(--azul-400); color: var(--azul-800); }
+.btn--institucional { background: var(--azul-800); color: var(--invertida); border-color: var(--azul-800); box-shadow: var(--sombra-sutil); }
+.btn--institucional:hover { background: var(--azul-600); border-color: var(--azul-600); color: var(--invertida); }
+.btn--institucional svg { color: var(--cian-300); }
 .btn--fantasma { background: transparent; color: var(--cian-700); padding-inline: 8px; }
 .btn[disabled] { opacity: 0.55; cursor: not-allowed; }
 .acciones-fila { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
