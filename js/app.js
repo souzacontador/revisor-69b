@@ -70,8 +70,13 @@ Empecemos por definir la estructura del revisor y cómo leer el CSV sin romper l
         if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); activar(tabs[(i + 1) % 2].id.slice(4), true); }
       });
     });
-    const inicial = location.hash === '#real' ? 'real' : location.hash === '#demo' ? 'demo' : (leer('modo') || 'demo');
+    // Un enlace a una sección (#paso-3, #entregables…) abre el modo que la contiene
+    let ancla = null;
+    try { ancla = location.hash.length > 1 ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null; } catch (e) { ancla = null; }
+    const porAncla = ancla && ancla.closest('#vista-real') ? 'real' : ancla && ancla.closest('#vista-demo') ? 'demo' : null;
+    const inicial = location.hash === '#real' ? 'real' : location.hash === '#demo' ? 'demo' : (porAncla || leer('modo') || 'demo');
     activar(inicial === 'real' ? 'real' : 'demo');
+    if (ancla && porAncla) setTimeout(() => ancla.scrollIntoView(), 0);
   }
 
   function iniciarPasos() {
