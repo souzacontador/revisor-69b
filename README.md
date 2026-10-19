@@ -17,6 +17,11 @@ Los CFDI se cargan como archivos XML sueltos, archivos ZIP o una **carpeta compl
 
 Los CFDI se leen **solo en el navegador**; no se envían a ningún servidor. Cada modo conserva su propio estado al cambiar entre ellos.
 
+- **Validación al leer:** se rechazan, y se listan como «con error», los CFDI con UUID mal formado, RFC de emisor o receptor vacío o inválido, fecha inexistente, importes no numéricos o negativos, o moneda extranjera sin `TipoCambio` positivo. Solo se analizan los de Ingreso; los duplicados se detectan por UUID.
+- **Un cliente por revisión:** si los CFDI son de varios receptores, se elige uno (se preselecciona el de más CFDI); los demás no entran en la revisión ni en los entregables.
+- **Topes por carga:** 10,000 XML y 500 MB descomprimidos, incluidos los ZIP anidados; cada archivo del ZIP se verifica con CRC-32.
+- **Entregables:** Excel (.xlsx) con las hojas «Tabla por operación», «Resumen por proveedor», «Notas» y «Trazabilidad» (versión, fuente y huella SHA-256 del listado, días inhábiles considerados, ajustes manuales y archivos omitidos); CSV por operación y por proveedor.
+
 ## Criterios aplicados
 
 - **Llave del cruce:** RFC normalizado (sin espacios, en mayúsculas, conservando Ñ y &). El nombre nunca decide; si se parece al de un contribuyente listado con otro RFC, solo se anota.
@@ -26,8 +31,8 @@ Los CFDI se leen **solo en el navegador**; no se envían a ningún servidor. Cad
   - **Desvirtuado y Sentencia favorable:** sin riesgo.
   - **RFC no encontrado:** «RFC no encontrado en el listado consultado», con la fecha de los datos.
 - **Varios episodios del mismo RFC:** se muestran todos. Si sus situaciones se contradicen, el veredicto es «Requiere revisión documental». Los importes no se duplican.
-- **Plazo:** 30 días hábiles contados desde el día siguiente a la publicación del definitivo **en el DOF**. Se muestran las fechas del SAT y del DOF. Si falta la fecha del DOF: «Pendiente de verificar publicación en DOF».
-  - Días inhábiles: los del art. 12 CFF, más los días adicionales de `js/dias-habiles.js` (RMF 2026, regla 2.1.6). **Actualiza esa lista cada año** con las vacaciones generales que publique el SAT.
+- **Plazo:** 30 días hábiles contados desde el día siguiente a la publicación del definitivo **en el DOF**. Se muestran las fechas del SAT y del DOF. Si falta la fecha del DOF: «Pendiente de verificar publicación en DOF». Si la fecha de revisión es anterior al inicio del cómputo: «plazo no iniciado».
+  - Días inhábiles: los del art. 12 CFF, más los días adicionales de `js/dias-habiles.js` (RMF 2026, regla 2.1.6: vacaciones del 18/12/2025 al 02/01/2026, 2 y 3 de abril y vacaciones del 20 al 31 de julio de 2026). **Actualiza esa lista** cuando el SAT publique nuevos periodos.
 - **Deducción:** «Monto potencialmente comprometido para deducción de ISR» = SubTotal − Descuento. En la tabla se puede ajustar el importe efectivamente deducido y el IVA acreditado. La estimación de ISR es opcional y se muestra por separado.
 
 ## Listado del 69-B (modo REAL)
