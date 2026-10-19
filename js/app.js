@@ -24,9 +24,12 @@
     listado: null, fuente: null, avisoListado: '', fechaDatos: '',
     cfdis: [], porUUID: new Map(), registro: { omitidos: [], errores: [] }, ultimaCarga: null,
     resultado: null, ajustes: {}, isr: { modo: 'no', tasa: 30, regimen: '' },
-    fechaRevision: fecha, filtro: 'TODOS', busqueda: ''
+    fechaRevision: fecha, filtro: 'TODOS', busqueda: '',
+    descargado: false,   // ¿se descargó algún entregable del resultado actual?
+    mensajeNuevo: false  // mostrar «Listo para iniciar un nuevo análisis»
   });
-  const estado = { demo: nuevoEstado('2026-09-30'), real: nuevoEstado(U.hoyISO()) };
+  const FECHA_DEMO = '2026-09-30';
+  const estado = { demo: nuevoEstado(FECHA_DEMO), real: nuevoEstado(U.hoyISO()) };
   let modo = 'demo';
   const st = () => estado[modo];
 
@@ -296,6 +299,7 @@
 
   function exportar(tipo) {
     const res = st().resultado; if (!res) return;
+    st().descargado = true;
     const base = `revisor69b_${modo}_${res.fechaRevision}`;
     if (tipo === 'xlsx') R69.xlsx.descargarXLSX(base + '_entregables.xlsx', R69.xlsx.libroEntregables(res, metaExcel()));
     else if (tipo === 'ops') E.descargar(base + '_operaciones.csv', E.csvOperaciones(res));
@@ -453,6 +457,7 @@
       archivos = utiles;
     }
     s.ignoradosCarpeta = deCarpeta ? ignorados : null;
+    s.mensajeNuevo = false;
     if (!archivos.length) {
       if (deCarpeta) { pintarResumenCFDI(); $('#cfdi-resumen').insertAdjacentHTML('afterbegin', `<div class="aviso aviso--medio">${ico('i-alerta')}<p>La carpeta no contiene archivos XML ni ZIP${ignorados ? ` (${ignorados === 1 ? 'se ignoró 1 archivo' : `se ignoraron ${ignorados} archivos`} de otro tipo)` : ''}.</p></div>`); }
       return;
@@ -510,7 +515,10 @@
 
   function pintarResumenCFDI() {
     const s = st(), reg = s.registro, cont = $('#cfdi-resumen');
-    if (!s.cfdis.length && !reg.omitidos.length && !reg.errores.length) { cont.innerHTML = ''; return; }
+    if (!s.cfdis.length && !reg.omitidos.length && !reg.errores.length) {
+      cont.innerHTML = s.mensajeNuevo ? `<div class="aviso aviso--bajo" style="margin-top:12px">${ico('i-ok')}<p><strong>Listo para iniciar un nuevo análisis.</strong> Carga los CFDI del siguiente cliente; el listado 69-B se conservó.</p></div>` : '';
+      return;
+    }
     const receptores = [...new Set(s.cfdis.map(c => c.receptorRFC))];
     const lista = (titulo, items) => items.length ? `<details class="detalle"><summary>${h(titulo)} (${items.length})</summary><ul class="registro-carga">${items.slice(0, 500).map(x => `<li><span class="mono">${h(x.archivo)}</span>: ${h(x.motivo)}</li>`).join('')}</ul></details>` : '';
     cont.innerHTML = `
@@ -536,6 +544,41 @@
     const bin = atob(b64), out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
+  }
+
+  // ====================== Nuevo análisis ======================
+  /** Pide confirmación (si hay datos) y reinicia el análisis del modo actual. */
+  function pedirNuevoAnalisis() {
+    const s = st();
+    const hayDatos = s.cfdis.length || s.resultado || s.registro.omitidos.length || s.registro.errores.length;
+    if (!hayDatos) { iniciarNuevoAnalisis(); return; }
+    const sinDescargar = !!s.resultado && !s.descargado;
+    const dlg = $('#dialogo-nuevo');
+    if (!dlg || typeof dlg.showModal !== 'function') {
+      const texto = 'Se eliminarán los CFDI y los resultados del análisis actual. El listado 69-B se conservará. ¿Deseas iniciar un nuevo análisis?' +
+        (sinDescargar ? '\n\nAún no descargaste los entregables de este análisis.' : '');
+      if (window.confirm(texto)) iniciarNuevoAnalisis();
+      return;
+    }
+    $('#dialogo-nuevo-recordatorio').hidden = !sinDescargar;
+    dlg.returnValue = '';
+    dlg.addEventListener('close', () => { if (dlg.returnValue === 'confirmar') iniciarNuevoAnalisis(); }, { once: true });
+    dlg.showModal();
+    $('#dialogo-nuevo-cancelar').focus();
+  }
+
+  /** Borra CFDI, resultados, ajustes, filtros y búsqueda; conserva el listado y el modo. */
+  function iniciarNuevoAnalisis() {
+    const s = st();
+    limpiarCFDI(s);
+    s.filtro = 'TODOS'; s.busqueda = ''; s.descargado = false; s.mensajeNuevo = true;
+    s.fechaRevision = modo === 'demo' ? FECHA_DEMO : U.hoyISO();
+    $('#fecha-revision').value = s.fechaRevision;
+    $('#resultados').hidden = true;
+    pintarResumenCFDI();
+    actualizarBoton();
+    $('#cfdi').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('#zona-carga').focus({ preventScroll: true });
   }
 
   function enlazarEventos() {
@@ -569,13 +612,12 @@
       $('#isr-otra').hidden = s.isr.modo !== 'otra';
       if (s.resultado) recalcular(false);
     });
-    $('#limpiar').addEventListener('click', () => {
-      limpiarCFDI(st()); $('#resultados').hidden = true; pintarResumenCFDI(); actualizarBoton();
-    });
+    $$('[data-accion="nuevo-analisis"]').forEach(b => b.addEventListener('click', pedirNuevoAnalisis));
     $('#restaurar-caso').addEventListener('click', () => {
-      cargarCFDICaso(); $('#resultados').hidden = true; pintarResumenCFDI(); actualizarBoton();
+      cargarCFDICaso(); estado.demo.mensajeNuevo = false; $('#resultados').hidden = true; pintarResumenCFDI(); actualizarBoton();
     });
     $('#ejecutar').addEventListener('click', () => {
+      st().descargado = false; st().mensajeNuevo = false;
       recalcular(true);
       $('#resultados').hidden = false;
       $('#resultados').scrollIntoView({ behavior: 'smooth', block: 'start' });

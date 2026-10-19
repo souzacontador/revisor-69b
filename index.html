@@ -7,8 +7,8 @@
   <meta name="description" content="Cruza CFDI de gastos contra el listado del artículo 69-B del CFF por RFC, clasifica cada operación, calcula el IVA y la deducción comprometidos y el plazo de 30 días hábiles.">
   <meta name="theme-color" content="#0A2540">
   <link rel="icon" href="assets/img/isotipo.png">
-  <link rel="stylesheet" href="css/marca.css?v=1.2.1">
-  <link rel="stylesheet" href="css/app.css?v=1.2.1">
+  <link rel="stylesheet" href="css/marca.css?v=1.2.2">
+  <link rel="stylesheet" href="css/app.css?v=1.2.2">
 </head>
 <body>
   <a class="saltar" href="#principal">Saltar al contenido</a>
@@ -109,7 +109,7 @@
         <div class="rejilla rejilla--2" id="parametros-isr" style="margin-top:16px"></div>
         <div class="acciones-fila no-imprimir" style="margin-top:20px">
           <button type="button" class="btn btn--primario" id="ejecutar" disabled><svg><use href="#i-play"/></svg>Ejecutar la revisión</button>
-          <button type="button" class="btn btn--secundario" id="limpiar">Limpiar CFDI cargados</button>
+          <button type="button" class="btn btn--secundario" data-accion="nuevo-analisis"><svg><use href="#i-recargar"/></svg>Nuevo análisis</button>
           <button type="button" class="btn btn--secundario" id="restaurar-caso" hidden>Volver a cargar los 40 CFDI del caso</button>
           <span class="secundario pequeno" id="estado-ejecucion" aria-live="polite"></span>
         </div>
@@ -117,7 +117,10 @@
 
       <!-- 4. Resultados y entregables -->
       <section id="resultados" class="tarjeta" aria-labelledby="t-resultados" hidden>
-        <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">4</span><h2 id="t-resultados">Resultados y entregables</h2></div>
+        <div class="encabezado-seccion encabezado-seccion--accion">
+          <div class="encabezado-seccion"><span class="num-paso" aria-hidden="true">4</span><h2 id="t-resultados">Resultados y entregables</h2></div>
+          <button type="button" class="btn btn--secundario no-imprimir" data-accion="nuevo-analisis"><svg><use href="#i-recargar"/></svg>Nuevo análisis</button>
+        </div>
         <div id="kpis"></div>
         <h3 style="margin-top:28px">Resumen por proveedor listado</h3>
         <p class="pequeno secundario">Situación, fechas de publicación relevantes, IVA y deducción comprometidos, acción recomendada y fecha límite.</p>
@@ -132,6 +135,22 @@
     </div>
   </main>
 
+  <!-- Confirmación de «Nuevo análisis» -->
+  <dialog id="dialogo-nuevo" class="dialogo" aria-labelledby="dialogo-nuevo-titulo">
+    <form method="dialog">
+      <h2 id="dialogo-nuevo-titulo">Nuevo análisis</h2>
+      <p>Se eliminarán los CFDI y los resultados del análisis actual. El listado 69-B se conservará. ¿Deseas iniciar un nuevo análisis?</p>
+      <div class="aviso aviso--medio" id="dialogo-nuevo-recordatorio" hidden>
+        <svg><use href="#i-alerta"/></svg>
+        <p><strong>Aún no descargaste los entregables de este análisis.</strong> Si los necesitas, cancela y usa «Descargar entregables en Excel (.xlsx)» antes de continuar.</p>
+      </div>
+      <div class="acciones-fila dialogo__acciones">
+        <button type="submit" value="cancelar" class="btn btn--secundario" id="dialogo-nuevo-cancelar">Cancelar</button>
+        <button type="submit" value="confirmar" class="btn btn--primario">Sí, iniciar nuevo análisis</button>
+      </div>
+    </form>
+  </dialog>
+
   <footer class="pie">
     <div class="contenedor">
       <p><strong>DSouza Consultores Fiscales</strong> · C.P. Daniel Souza Vázquez · Mexicali, Baja California · <a href="mailto:daniel@dsouzaconsultores.mx">daniel@dsouzaconsultores.mx</a> · (686) 256-7293</p>
@@ -139,15 +158,15 @@
     </div>
   </footer>
 
-  <script src="js/util.js?v=1.2.1"></script>
-  <script src="js/dias-habiles.js?v=1.2.1"></script>
-  <script src="js/lector-csv.js?v=1.2.1"></script>
-  <script src="js/lector-cfdi.js?v=1.2.1"></script>
-  <script src="js/lector-zip.js?v=1.2.1"></script>
-  <script src="js/clasificador.js?v=1.2.1"></script>
-  <script src="js/exportar.js?v=1.2.1"></script>
-  <script src="js/exportar-xlsx.js?v=1.2.1"></script>
-  <script src="js/demo-data.js?v=1.2.1"></script>
-  <script src="js/app.js?v=1.2.1"></script>
+  <script src="js/util.js?v=1.2.2"></script>
+  <script src="js/dias-habiles.js?v=1.2.2"></script>
+  <script src="js/lector-csv.js?v=1.2.2"></script>
+  <script src="js/lector-cfdi.js?v=1.2.2"></script>
+  <script src="js/lector-zip.js?v=1.2.2"></script>
+  <script src="js/clasificador.js?v=1.2.2"></script>
+  <script src="js/exportar.js?v=1.2.2"></script>
+  <script src="js/exportar-xlsx.js?v=1.2.2"></script>
+  <script src="js/demo-data.js?v=1.2.2"></script>
+  <script src="js/app.js?v=1.2.2"></script>
 </body>
 </html>
