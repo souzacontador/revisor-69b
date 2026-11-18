@@ -1,22 +1,22 @@
 {
   "fuente": "SAT – Datos abiertos, Listado completo 69-B",
   "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGAFF/Listado_completo_69-B.csv",
-  "ultimaDescargaExitosa": "2026-11-17T22:07:52.413Z",
-  "lastModifiedSAT": "Fri, 16 Oct 2026 23:16:00 GMT",
-  "etag": "0x8DF2BDB716205DD",
-  "actualizadoAl": "30 de septiembre de 2026",
-  "registros": 15013,
+  "ultimaDescargaExitosa": "2026-11-18T21:45:32.987Z",
+  "lastModifiedSAT": "Wed, 18 Nov 2026 16:20:34 GMT",
+  "etag": "0x8DF458FDFCE1D9B",
+  "actualizadoAl": "31 de octubre de 2026",
+  "registros": 15126,
   "conteos": {
-    "Presunto": 878,
+    "Presunto": 829,
     "Desvirtuado": 340,
-    "Definitivo": 12128,
+    "Definitivo": 12290,
     "Sentencia Favorable": 1667,
     "Otra": 0
   },
   "rfcConVariosEpisodios": 85,
   "renglonEncabezado": 3,
-  "sha256": "1c47cfec74e566f8ad949e17b1203b883d46ca81af97bc098c67a51cdabceb2b",
-  "bytes": 4856086,
+  "sha256": "475c99628d90183f76575e0c9c31f198420f570359a1b1df871d465054da1eae",
+  "bytes": 4903313,
   "origen": "descarga",
-  "contenidoSinCambiosDesde": "2026-10-19T03:24:56.326Z"
+  "contenidoSinCambiosDesde": "2026-11-18T21:45:32.987Z"
 }
